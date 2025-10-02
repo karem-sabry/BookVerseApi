@@ -1,6 +1,7 @@
 ﻿using System.Net;
-using BookStoreApi.Application.Dtos;
-using BookStoreApi.Application.Interfaces;
+using BookStoreApi.Dtos;
+using BookStoreApi.Dtos.Author;
+using BookStoreApi.Interfaces;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 

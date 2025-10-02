@@ -1,5 +1,6 @@
-﻿using BookStoreApi.Application.Dtos;
-using BookStoreApi.Application.Interfaces;
+﻿using BookStoreApi.Dtos;
+using BookStoreApi.Dtos.Book;
+using BookStoreApi.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BookStoreApi.Controllers;

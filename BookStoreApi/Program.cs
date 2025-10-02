@@ -1,8 +1,8 @@
-using BookStoreApi.Application.Interfaces;
-using BookStoreApi.Application.Services;
-using BookStoreApi.Infrastructure.Data;
-using BookStoreApi.Infrastructure.Repositories;
+using BookStoreApi.Data;
+using BookStoreApi.Interfaces;
 using BookStoreApi.Middlewares;
+using BookStoreApi.Repositories;
+using BookStoreApi.Services;
 using Microsoft.EntityFrameworkCore;
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,6 +22,8 @@ builder.Services.AddScoped<IBooksService,BooksService>();
 builder.Services.AddScoped<IBookRepository, BookRepository>();
 builder.Services.AddScoped<IAuthorsService,AuthorsService>();
 builder.Services.AddScoped<IAuthorRepository, AuthorRepository>();
+builder.Services.AddScoped<ICategoryService,CategoryService>();
+builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddDbContext<AppDbContext>(options=> options.UseInMemoryDatabase("BookDb"));
 var app = builder.Build();
  
