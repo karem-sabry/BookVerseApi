@@ -15,10 +15,11 @@ public class BookRepository : GenericRepository<Book>,IBookRepository
         _context = context;
     }
 
-    public async Task<IEnumerable<Book>> GetAllAsync()
+    public override async Task<IEnumerable<Book>> GetAllAsync()
     {
         return await _dbSet.Include(b => b.Author).Include(b => b.Category).ToListAsync();
     }
+    
 
     public async Task<Book?> GetByIdAsync(int id)
     {

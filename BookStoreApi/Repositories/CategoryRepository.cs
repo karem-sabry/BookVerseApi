@@ -13,12 +13,7 @@ public class CategoryRepository:GenericRepository<Category>,ICategoryRepository
     {
         _context = context;
     }
-
-    public async Task<IEnumerable<Category>> GetAllAsync()
-    {
-        return await _dbSet.ToListAsync();
-    }
-
+    
     public async Task<Category?> GetByIdAsync(int id)
     {
         return await _dbSet.Include(c => c.Books).FirstOrDefaultAsync(c => c.Id == id);
