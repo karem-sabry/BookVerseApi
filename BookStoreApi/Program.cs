@@ -1,6 +1,7 @@
 using BookStoreApi.Data;
 using BookStoreApi.Interfaces;
 using BookStoreApi.Middlewares;
+using BookStoreApi.Models;
 using BookStoreApi.Repositories;
 using BookStoreApi.Services;
 using Microsoft.EntityFrameworkCore;
@@ -14,10 +15,14 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
 }).AddNewtonsoftJson();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
+
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+
+//Accessing the JwtOptions Section Using the options pattern 
+builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.JwtOptionsKey));
+
 builder.Services.AddScoped<IBooksService,BooksService>();
 builder.Services.AddScoped<IBookRepository, BookRepository>();
 builder.Services.AddScoped<IAuthorsService,AuthorsService>();
