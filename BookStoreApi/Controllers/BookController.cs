@@ -1,6 +1,7 @@
 ﻿using BookStoreApi.Dtos;
 using BookStoreApi.Dtos.Book;
 using BookStoreApi.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BookStoreApi.Controllers;
@@ -18,6 +19,7 @@ public class BookController : ControllerBase
     }
 
     [HttpGet]
+    [AllowAnonymous]
     public async Task<ActionResult<IEnumerable<BookReadDto>>> GetBooks()
     {
         var books = await _booksService.GetAllAsync();
@@ -25,6 +27,7 @@ public class BookController : ControllerBase
     }
 
     [HttpGet("{id}")]
+    [AllowAnonymous]
     public async Task<ActionResult<BookReadDto>> GetBookById(int id)
     {
         var book = await _booksService.GetByIdAsync(id);
@@ -33,6 +36,7 @@ public class BookController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<BookReadDto>> CreateBook(BookCreateDto bookDto)
     {
         var createdBook = await _booksService.CreateAsync(bookDto);
@@ -40,13 +44,15 @@ public class BookController : ControllerBase
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
     public async Task<IActionResult> UpdateBook(int id, BookUpdateDto bookDto)
     {
         return await _booksService.UpdateAsync(id, bookDto) ? NoContent() : NotFound();
     }
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteBook(int id)
     {
         return await _booksService.DeleteAsync(id) ? NoContent() : NotFound();

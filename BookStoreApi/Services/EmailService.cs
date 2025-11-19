@@ -19,7 +19,7 @@ public class EmailService : IEmailService
         var from = smtpSettings["From"];
         var host = smtpSettings["Host"];
         var port = int.Parse(smtpSettings["Port"]!);
-        var username = smtpSettings["Username"];
+        var username = smtpSettings["UserName"];
         var password = smtpSettings["Password"];
         var displayName = smtpSettings["DisplayName"] ?? from;
         using var client = new SmtpClient(host, port)

@@ -1,5 +1,8 @@
-﻿using BookStoreApi.Dtos.User;
+﻿using System.Security.Claims;
+using BookStoreApi.Constants;
+using BookStoreApi.Dtos.User;
 using BookStoreApi.Entities;
+using BookStoreApi.Enums;
 using BookStoreApi.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.Data;
@@ -53,6 +56,8 @@ public class AccountService : IAccountService
             };
         }
 
+        await _userManager.AddToRoleAsync(user, GetIdentityRoleName(registerRequest.Role));
+
         return new RegisterResponse
         {
             Succeeded = true,
@@ -72,7 +77,8 @@ public class AccountService : IAccountService
             };
         }
 
-        var (jwtToken, expirationDateInUtc) = _authTokenProcessor.GenerateJwtToken(user);
+        IList<string> roles = await _userManager.GetRolesAsync(user);
+        var (jwtToken, expirationDateInUtc) = _authTokenProcessor.GenerateJwtToken(user,roles);
 
         var refreshTokenValue = _authTokenProcessor.GenerateRefreshToken();
 
@@ -88,6 +94,37 @@ public class AccountService : IAccountService
             AccessToken = jwtToken,
             ExpiresAtUtc = expirationDateInUtc,
             RefreshToken = refreshTokenValue
+        };
+    }
+
+    public async Task<BasicResponse> DeleteMyAccountAsync(string userEmail)
+    {
+        
+        var user = await _userManager.FindByEmailAsync(userEmail);
+        
+        if (user== null)
+        {
+            return new BasicResponse()
+            {
+                Succeeded = false,
+                Message = "User not found."
+            };
+        }
+
+        var result = await _userManager.DeleteAsync(user);
+        if (!result.Succeeded)
+        {
+            return new BasicResponse
+            {
+                Succeeded = false,
+                Message = "Unable to delete account."
+            };
+        }
+
+        return new BasicResponse
+        {
+            Succeeded = true,
+            Message = "Account deleted successfully."
         };
     }
 
@@ -122,7 +159,8 @@ public class AccountService : IAccountService
             };
         }
 
-        var (jwtToken, expirationDateInUtc) = _authTokenProcessor.GenerateJwtToken(user);
+        IList<string> roles = await _userManager.GetRolesAsync(user);
+        var (jwtToken, expirationDateInUtc) = _authTokenProcessor.GenerateJwtToken(user,roles);
         var refreshTokenValue = _authTokenProcessor.GenerateRefreshToken();
         var refreshExpirationDateInUtc = DateTime.UtcNow.AddDays(7);
         user.RefreshToken = refreshTokenValue;
@@ -248,6 +286,15 @@ public class AccountService : IAccountService
             Email = user.Email,
             FirstName = user.FirstName,
             LastName = user.LastName
+        };
+    }
+
+    private string GetIdentityRoleName(Role role)
+    {
+        return role switch
+        {
+            Role.User => IdentityRoleConstants.User,
+            _ => throw new ArgumentOutOfRangeException(nameof(role), role, "Provided role is not supported.")
         };
     }
 }

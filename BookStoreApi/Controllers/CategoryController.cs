@@ -1,6 +1,7 @@
 ﻿using BookStoreApi.Dtos;
 using BookStoreApi.Dtos.Category;
 using BookStoreApi.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BookStoreApi.Controllers;
@@ -17,13 +18,16 @@ public class CategoryController:ControllerBase
         _categoryService = categoryService;
     }
     [HttpGet]
+    [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<CategoriesReadDto>>> GetCategories()
     {
         var categories = await _categoryService.GetAllAsync();
         return Ok(categories);
     }
+    
     [HttpGet("{id}")]
+    [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CategoryReadDto>> GetCategoryById(int id)
@@ -32,6 +36,7 @@ public class CategoryController:ControllerBase
         return category == null ? NotFound() : Ok(category);
     }
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     public async Task<ActionResult<CategoryReadDto>> CreateCategory(CategoryCreateDto categoryDto)
     {
@@ -39,6 +44,7 @@ public class CategoryController:ControllerBase
         return CreatedAtAction(nameof(GetCategoryById), new { id = createdCategory.Id }, createdCategory);
     }
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateCategory(int id, [FromBody] CategoryUpdateDto categoryDto)
@@ -46,6 +52,7 @@ public class CategoryController:ControllerBase
         return await _categoryService.UpdateAsync(id, categoryDto) ? NoContent() : NotFound();
     }
     [HttpDelete("{id}")]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteCategory(int id)

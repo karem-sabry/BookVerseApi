@@ -2,6 +2,7 @@
 using BookStoreApi.Dtos;
 using BookStoreApi.Dtos.Author;
 using BookStoreApi.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
@@ -20,6 +21,7 @@ public class AuthorController:ControllerBase
     }
 
     [HttpGet]
+    [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<IEnumerable<AuthorReadDto>>> GetAuthors()
     {
@@ -28,6 +30,7 @@ public class AuthorController:ControllerBase
     }
 
     [HttpGet("{id}")]
+    [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<AuthorReadDto>> GetAuthor(int id)
@@ -37,12 +40,14 @@ public class AuthorController:ControllerBase
     }
     
     [HttpPost]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<AuthorReadDto>> CreateAuthor(AuthorCreateDto authorDto)
     {
         return await _service.CreateAsync(authorDto);
     }
 
     [HttpPut("{id}")]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> UpdateAuthor(int id, AuthorUpdateDto authorDto)
@@ -51,6 +56,7 @@ public class AuthorController:ControllerBase
     }
 
     [HttpDelete]
+    [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteAuthor(int id)

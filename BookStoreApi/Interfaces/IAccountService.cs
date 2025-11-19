@@ -1,4 +1,5 @@
-﻿using BookStoreApi.Dtos.User;
+﻿using System.Security.Claims;
+using BookStoreApi.Dtos.User;
 using Microsoft.AspNetCore.Identity.Data;
 using LoginRequest = BookStoreApi.Dtos.User.LoginRequest;
 using RegisterRequest = BookStoreApi.Dtos.User.RegisterRequest;
@@ -9,6 +10,7 @@ public interface IAccountService
 {
     Task<RegisterResponse> RegisterAsync(RegisterRequest registerRequest);
     Task<LoginResponse> LoginAsync(LoginRequest request);
+    Task<BasicResponse> DeleteMyAccountAsync(string userEmail);
     Task<RefreshTokenResponse> RefreshTokenAsync(RefreshTokenRequest refreshTokenRequest);
     Task<BasicResponse> ForgotPasswordAsync(ForgotPasswordRequest request);
     Task<BasicResponse> ResetPasswordAsync(ResetPasswordRequest request);

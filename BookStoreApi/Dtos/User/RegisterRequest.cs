@@ -1,4 +1,6 @@
-﻿namespace BookStoreApi.Dtos.User;
+﻿using BookStoreApi.Enums;
+
+namespace BookStoreApi.Dtos.User;
 
 public record RegisterRequest
 {
@@ -6,5 +8,6 @@ public record RegisterRequest
     public required string LastName { get; init; }
     public required string Email { get; init; }
     public required string Password { get; init; }
+    public required Role Role { get; init; }
     
 }

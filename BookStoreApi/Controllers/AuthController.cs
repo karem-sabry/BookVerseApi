@@ -23,6 +23,7 @@ namespace BookStoreApi.Controllers
             _accountService = accountService;
         }
         [HttpPost("register")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(RegisterResponse),StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(RegisterResponse),StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Register([FromBody]RegisterRequest registerRequest)
@@ -37,6 +38,7 @@ namespace BookStoreApi.Controllers
             return BadRequest(response);
         }
         [HttpPost("login")]
+        [AllowAnonymous]
         [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> Login([FromBody] LoginRequest loginRequest)
@@ -51,7 +53,7 @@ namespace BookStoreApi.Controllers
         }
 
         [HttpPost("refresh-token")]
-        [AllowAnonymous]
+        [Authorize]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status401Unauthorized)]
         public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest refreshTokenRequest)
@@ -129,6 +131,29 @@ namespace BookStoreApi.Controllers
             }
 
             return BadRequest(response);
+        }
+        
+        [Authorize]
+        [HttpDelete("delete-account")]
+        public async Task<IActionResult> DeleteMyAccount()
+        {
+            
+            var email = User.FindFirstValue(ClaimTypes.Email);
+            if (string.IsNullOrWhiteSpace(email))
+            {
+                return BadRequest(new LogoutResponse
+                {
+                    Succeeded = false,
+                    Message = "Invalid user context."
+                });
+            }
+            var result = await _accountService.DeleteMyAccountAsync(email);
+            if (!result.Succeeded)
+            {
+                return BadRequest(result);
+            }
+
+            return Ok(result);
         }
     }
 }

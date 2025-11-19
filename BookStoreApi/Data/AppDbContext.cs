@@ -1,4 +1,5 @@
-﻿using BookStoreApi.Entities;
+﻿using BookStoreApi.Constants;
+using BookStoreApi.Entities;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
@@ -23,6 +24,25 @@ public class AppDbContext : IdentityDbContext<User,IdentityRole<Guid>,Guid>
         
         modelBuilder.Entity<User>()
             .Property(u => u.LastName).HasMaxLength(256);
+        
+        // Seed Roles
+        modelBuilder.Entity<IdentityRole<Guid>>()
+            .HasData(new List<IdentityRole<Guid>>
+            {
+                new IdentityRole<Guid>()
+                {
+                    Id = IdentityRoleConstants.AdminRoleGuid,
+                    Name = IdentityRoleConstants.Admin,
+                    NormalizedName = IdentityRoleConstants.Admin.ToUpper()
+                },
+                new IdentityRole<Guid>()
+                {
+                    Id = IdentityRoleConstants.UserRoleGuid,
+                    Name = IdentityRoleConstants.User,
+                    NormalizedName = IdentityRoleConstants.User.ToUpper()
+                }
+            });
+        
         // Seed Authors
         modelBuilder.Entity<Author>().HasData(
             new Author { Id = 1, FirstName = "George", LastName = "Orwell" },

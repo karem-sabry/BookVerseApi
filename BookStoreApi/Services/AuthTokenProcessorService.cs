@@ -4,6 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using BookStoreApi.Dtos.User;
 using BookStoreApi.Entities;
+using BookStoreApi.Interfaces;
 using BookStoreApi.Models;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -19,19 +20,19 @@ public class AuthTokenProcessorService : IAuthTokenProcessor
     {
         _jwtOptions = jwtOptions.Value;
     }
-    public (string jwtToken, DateTime expiresAtUtc) GenerateJwtToken(User user)
+    public (string jwtToken, DateTime expiresAtUtc) GenerateJwtToken(User user,IList<string> roles)
     {
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.Secret));
 
         var credentials = new SigningCredentials(signingKey, SecurityAlgorithms.HmacSha256);
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
             new Claim(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
             new Claim(ClaimTypes.NameIdentifier, user.ToString())
-        };
+        }.Concat(roles.Select(r => new Claim(ClaimTypes.Role, r)));
         var expires = DateTime.UtcNow.AddMinutes(_jwtOptions.ExpirationTimeInMinutes);
 
         var token = new JwtSecurityToken(
