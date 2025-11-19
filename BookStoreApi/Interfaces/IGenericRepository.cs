@@ -1,6 +1,4 @@
-﻿using System.Linq.Expressions;
-
-namespace BookStoreApi.Interfaces;
+﻿namespace BookStoreApi.Interfaces;
 
 public interface IGenericRepository<T> where T :class
 {

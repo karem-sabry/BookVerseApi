@@ -1,6 +1,6 @@
+using System.Security.Claims;
 using System.Text;
 using BookStoreApi.Data;
-using BookStoreApi.Dtos.User;
 using BookStoreApi.Entities;
 using BookStoreApi.Interfaces;
 using BookStoreApi.Middlewares;
@@ -10,6 +10,7 @@ using BookStoreApi.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 
@@ -23,6 +24,7 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
 }).AddNewtonsoftJson();
+
 builder.Services.AddIdentity<User, IdentityRole<Guid>>(opt =>
 {
     opt.Password.RequireDigit = true;
@@ -31,9 +33,15 @@ builder.Services.AddIdentity<User, IdentityRole<Guid>>(opt =>
     opt.Password.RequireNonAlphanumeric = true;
     opt.Password.RequiredLength = 8;
     opt.User.RequireUniqueEmail = true;
+
+    opt.Tokens.PasswordResetTokenProvider = TokenOptions.DefaultProvider;
 }).AddEntityFrameworkStores<AppDbContext>()
 .AddDefaultTokenProviders();
 
+builder.Services.Configure<DataProtectionTokenProviderOptions>(opt =>
+{
+    opt.TokenLifespan = TimeSpan.FromHours(2);
+});
 builder.Services.AddAuthentication(opt =>
 {
     opt.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -50,8 +58,17 @@ builder.Services.AddAuthentication(opt =>
         ValidateIssuerSigningKey = true,
         ValidIssuer = jwtOptions.Issuer,
         ValidAudience = jwtOptions.Audience,
-        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Secret))
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Secret)),
+        RoleClaimType = ClaimTypes.Role
     };
+});
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("UserOnly", policy => policy.RequireRole("User"));
+    options.AddPolicy("AdminOrUser", policy => policy.RequireRole("Admin", "User"));
+
+
 });
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 builder.Services.AddEndpointsApiExplorer();
@@ -84,7 +101,7 @@ builder.Services.AddSwaggerGen(options =>
 
 //Accessing the JwtOptions Section Using the options pattern 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.JwtOptionsKey));
-
+builder.Services.Configure<AdminUserOptions>(builder.Configuration.GetSection("AdminUser"));
 builder.Services.AddScoped<IBooksService,BooksService>();
 builder.Services.AddScoped<IBookRepository, BookRepository>();
 builder.Services.AddScoped<IAuthorsService,AuthorsService>();
@@ -96,7 +113,26 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthTokenProcessor, AuthTokenProcessorService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 var app = builder.Build();
- 
+
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var context = services.GetRequiredService<AppDbContext>();
+        var userManager = services.GetRequiredService<UserManager<User>>();
+        var roleManager = services.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
+        var adminOptions = services.GetRequiredService<IOptions<AdminUserOptions>>();
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        await DbInitializer.SeedDataAsync(context, userManager, roleManager,adminOptions,logger);
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while seeding the database.");
+    }
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

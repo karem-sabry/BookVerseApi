@@ -1,9 +1,6 @@
-﻿using System.Net;
-using BookStoreApi.Dtos;
-using BookStoreApi.Dtos.Author;
+﻿using BookStoreApi.Dtos.Author;
 using BookStoreApi.Interfaces;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 
 namespace BookStoreApi.Controllers;

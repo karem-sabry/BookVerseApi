@@ -1,5 +1,4 @@
-﻿using BookStoreApi.Dtos;
-using BookStoreApi.Dtos.Category;
+﻿using BookStoreApi.Dtos.Category;
 using BookStoreApi.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

@@ -1,5 +1,4 @@
 ﻿using AutoMapper;
-using BookStoreApi.Dtos;
 using BookStoreApi.Dtos.Author;
 using BookStoreApi.Dtos.Book;
 using BookStoreApi.Dtos.Category;

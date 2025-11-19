@@ -1,12 +1,10 @@
-﻿using System.Security.Claims;
-using BookStoreApi.Constants;
+﻿using BookStoreApi.Constants;
 using BookStoreApi.Dtos.User;
 using BookStoreApi.Entities;
 using BookStoreApi.Enums;
 using BookStoreApi.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.Data;
-using Microsoft.Build.Execution;
 using LoginRequest = BookStoreApi.Dtos.User.LoginRequest;
 using RegisterRequest = BookStoreApi.Dtos.User.RegisterRequest;
 
@@ -16,13 +14,15 @@ public class AccountService : IAccountService
 {
     private readonly IAuthTokenProcessor _authTokenProcessor;
     private readonly UserManager<User> _userManager;
+    private readonly RoleManager<IdentityRole<Guid>> _roleManager;
     private readonly IUserRepository _userRepository;
     private readonly IEmailService _emailService;
 
-    public AccountService(IAuthTokenProcessor authTokenProcessor,UserManager<User> userManager, IUserRepository userRepository,IEmailService emailService)
+    public AccountService(IAuthTokenProcessor authTokenProcessor,UserManager<User> userManager,RoleManager<IdentityRole<Guid>> roleManager, IUserRepository userRepository,IEmailService emailService)
     {
         _authTokenProcessor = authTokenProcessor;
         _userManager = userManager;
+        _roleManager = roleManager;
         _userRepository = userRepository;
         _emailService = emailService;
     }
@@ -40,6 +40,20 @@ public class AccountService : IAccountService
             };
         }
 
+        var identityRoleName = GetIdentityRoleName(registerRequest.Role);
+        var roleExists = await _roleManager.RoleExistsAsync(identityRoleName);
+
+        if (!roleExists)
+        {
+            return new RegisterResponse
+            {
+                Succeeded = false,
+                Message = "Invalid role specified.",
+                Errors = new[] { $"Role '{identityRoleName} does not exist'" }
+            };
+        }
+        
+        
         var user = User.Create(registerRequest.Email, registerRequest.FirstName, registerRequest.LastName);
 
         user.PasswordHash = _userManager.PasswordHasher.HashPassword(user, registerRequest.Password);
@@ -56,7 +70,7 @@ public class AccountService : IAccountService
             };
         }
 
-        await _userManager.AddToRoleAsync(user, GetIdentityRoleName(registerRequest.Role));
+        await _userManager.AddToRoleAsync(user,identityRoleName);
 
         return new RegisterResponse
         {
@@ -77,7 +91,7 @@ public class AccountService : IAccountService
             };
         }
 
-        IList<string> roles = await _userManager.GetRolesAsync(user);
+        var roles = await _userManager.GetRolesAsync(user);
         var (jwtToken, expirationDateInUtc) = _authTokenProcessor.GenerateJwtToken(user,roles);
 
         var refreshTokenValue = _authTokenProcessor.GenerateRefreshToken();
@@ -159,7 +173,7 @@ public class AccountService : IAccountService
             };
         }
 
-        IList<string> roles = await _userManager.GetRolesAsync(user);
+        var roles = await _userManager.GetRolesAsync(user);
         var (jwtToken, expirationDateInUtc) = _authTokenProcessor.GenerateJwtToken(user,roles);
         var refreshTokenValue = _authTokenProcessor.GenerateRefreshToken();
         var refreshExpirationDateInUtc = DateTime.UtcNow.AddDays(7);
@@ -246,6 +260,10 @@ public class AccountService : IAccountService
             };
         }
 
+        user.RefreshToken = null;
+        user.RefreshTokenExpiresAtUtc = null;
+        await _userManager.UpdateAsync(user);
+        
         return new BasicResponse
         {
             Succeeded = true,
@@ -294,6 +312,7 @@ public class AccountService : IAccountService
         return role switch
         {
             Role.User => IdentityRoleConstants.User,
+            Role.Admin =>IdentityRoleConstants.Admin,
             _ => throw new ArgumentOutOfRangeException(nameof(role), role, "Provided role is not supported.")
         };
     }

@@ -1,6 +1,5 @@
-﻿namespace BookStoreApi.Interfaces;
-using BookStoreApi.Entities;
-
+﻿using BookStoreApi.Entities;
+namespace BookStoreApi.Interfaces;
 
 public interface IAuthTokenProcessor
 {

@@ -2,7 +2,6 @@
 using System.Security.Claims;
 using System.Security.Cryptography;
 using System.Text;
-using BookStoreApi.Dtos.User;
 using BookStoreApi.Entities;
 using BookStoreApi.Interfaces;
 using BookStoreApi.Models;
