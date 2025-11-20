@@ -1,40 +1,51 @@
 ﻿using System.Net;
 using System.Net.Mail;
 using BookStoreApi.Interfaces;
+using BookStoreApi.Models;
+using Microsoft.Extensions.Options;
 
 namespace BookStoreApi.Services;
 
 public class EmailService : IEmailService
 {
-    private readonly IConfiguration _config;
+    private readonly EmailOptions _emailOptions;
+    private readonly ILogger<EmailService> _logger;
 
-    public EmailService(IConfiguration config)
+    // private readonly IConfiguration _config;
+    //
+    // public EmailService(IConfiguration config)
+    // {
+    //     _config = config;
+    // }
+    public EmailService(IOptions<EmailOptions> emailOptions,ILogger<EmailService> logger)
     {
-        _config = config;
+        _emailOptions = emailOptions.Value;
+        _logger = logger;
     }
-
-    public async Task SendEmailAsync(string to, string subject, string body)
+    public async Task SendEmailAsync(string toEmail, string subject, string body)
     {
-        var smtpSettings = _config.GetSection("SmtpSettings");
-        var from = smtpSettings["From"];
-        var host = smtpSettings["Host"];
-        var port = int.Parse(smtpSettings["Port"]!);
-        var username = smtpSettings["UserName"];
-        var password = smtpSettings["Password"];
-        var displayName = smtpSettings["DisplayName"] ?? from;
-        using var client = new SmtpClient(host, port)
+        try
         {
-            EnableSsl = true,
-            Credentials = new NetworkCredential(username, password)
-        };
-        var mail = new MailMessage
+            using var message = new MailMessage
+            {
+                From = new MailAddress(_emailOptions.FromEmail, _emailOptions.FromName),
+                Subject = subject,
+                Body = body,
+                IsBodyHtml = false
+            };
+            message.To.Add(toEmail);
+
+            using var smtp = new SmtpClient(_emailOptions.SmtpHost, _emailOptions.SmtpPort)
+            {
+                Credentials = new NetworkCredential(_emailOptions.SmtpUsername, _emailOptions.SmtpPassword),
+                EnableSsl = true
+            };
+            await smtp.SendMailAsync(message);
+            _logger.LogInformation($"Email send successfully to {toEmail}.");
+        }
+        catch (Exception ex)
         {
-            From = new MailAddress(from!,displayName),
-            Subject = subject,
-            Body = body,
-            IsBodyHtml = false,
-        };
-        mail.To.Add(to);
-        await client.SendMailAsync(mail);
+            _logger.LogError(ex,$"Failed to send email to{toEmail}.");
+        }
     }
 }

@@ -1,7 +1,9 @@
+using System.Security.Claims;
 using BookStoreApi.Constants;
 using BookStoreApi.Dtos.User;
 using BookStoreApi.Entities;
 using BookStoreApi.Enums;
+using BookStoreApi.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -15,96 +17,45 @@ namespace BookStoreApi.Controllers;
 [Authorize(Roles= "Admin")]
 public class AdminController : ControllerBase
 {
-    private readonly UserManager<User> _userManager;
+    private readonly IAdminService _adminService;
 
-    public AdminController(UserManager<User> userManager)
+    public AdminController(IAdminService adminService)
     {
-        _userManager = userManager;
+        _adminService = adminService;
     }
     
     [HttpGet("users")]
     [ProducesResponseType(typeof(IEnumerable<UserWithRolesDto>),StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAllUsers()
     {
-        var users = await _userManager.Users.ToListAsync();
-        var usersWithRoles = new List<UserWithRolesDto>();
-        foreach (var user in users)
-        {
-            var roles = await _userManager.GetRolesAsync(user);
-            usersWithRoles.Add(new UserWithRolesDto
-            {
-                Id = user.Id,
-                Email = user.Email!,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                Roles = roles.ToList()
-            });
-        }
-
-        return Ok(usersWithRoles);
+        var users = await _adminService.GetAllUsersAsync();
+        return Ok(users);
     }
     [HttpGet("users/{userId:guid}")]
     [ProducesResponseType(typeof(UserWithRolesDto),StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetUserById(Guid userId)
     {
-        var user = await _userManager.FindByIdAsync(userId.ToString());
-
+        var user = await _adminService.GetUserByIdAsync(userId);
         if (user == null)
-        {
             return NotFound("User not found.");
-        }
 
-        var roles = await _userManager.GetRolesAsync(user);
-
-        return Ok(new UserWithRolesDto
-        {
-            Id = user.Id,
-            Email = user.Email!,
-            FirstName = user.FirstName,
-            LastName = user.LastName,
-            Roles = roles.ToList()
-        });
+        return Ok(user);
     }
 
-    [HttpPost("users/userId:guid/make-admin")]
+    [HttpPost("users/{userId:guid}/make-admin")]
     [ProducesResponseType(typeof(BasicResponse),StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BasicResponse),StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> MakeUserAdmin(Guid userId)
     {
-        var user = await _userManager.FindByIdAsync(userId. ToString());
+        var currentAdminEmail = User.FindFirstValue(ClaimTypes.Email) ?? "";
+        var response = await _adminService.MakeUserAdminAsync(userId, currentAdminEmail);
 
-        if (user==null)
-        {
-            return NotFound("User not found.");
-        }
+        if (response.Succeeded)
+            return Ok(response);
 
-        if (await _userManager.IsInRoleAsync(user,IdentityRoleConstants.Admin))
-        {
-            return BadRequest(new BasicResponse
-            {
-                Succeeded = false,
-                Message = "User is already an admin."
-            });
-        }
-
-        var result = await _userManager.AddToRoleAsync(user, IdentityRoleConstants.Admin);
-
-        if (!result.Succeeded)
-        {
-            return BadRequest(new BasicResponse
-            {
-                Succeeded = false,
-                Message = string.Join(", ", result.Errors.Select(e => e.Description))
-            });
-        }
-
-        return Ok(new BasicResponse
-        {
-            Succeeded = true,
-            Message = $"User {user.Email} has been granted Admin role."
-        });
+        return BadRequest(response);
     }
 
     [HttpPost("users/{userId:guid}/remove-admin")]
@@ -113,36 +64,12 @@ public class AdminController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> RemoveAdminRole(Guid userId)
     {
-        var user = await _userManager.FindByIdAsync(userId.ToString());
-        if (user == null)
-        {
-            return NotFound("User not found.");
-        }
-        //Check if user has Admin role
-        if (!await _userManager.IsInRoleAsync(user,IdentityRoleConstants.Admin))
-        {
-            return BadRequest(new BasicResponse
-            {
-                Succeeded = false,
-                Message = "User is not an Admin."
-            });
-        }
+        var response = await _adminService.RemoveAdminRoleAsync(userId);
 
-        var result = await _userManager.RemoveFromRoleAsync(user, IdentityRoleConstants.Admin);
-        if (!result.Succeeded)
-        {
-            return BadRequest(new BasicResponse
-            {
-                Succeeded = false,
-                Message = string.Join(", ", result.Errors.Select(e => e.Description))
-            });
-        }
+        if (response.Succeeded)
+            return Ok(response);
 
-        return Ok(new BasicResponse
-        {
-            Succeeded = true,
-            Message = $"Admin role removed from user {user.Email}."
-        });
+        return BadRequest(response);
     }
     [HttpDelete("users/{userId:guid}")]
     [ProducesResponseType(typeof(BasicResponse), StatusCodes.Status200OK)]
@@ -150,28 +77,13 @@ public class AdminController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult> DeleteUser(Guid userId)
     {
-        var user = await _userManager.FindByIdAsync(userId.ToString());
-        if (user == null)
-        {
-            return NotFound("User not found.");
-        }
+        var currentAdminEmail = User.FindFirstValue(ClaimTypes.Email) ?? "";
+        var response = await _adminService.DeleteUserAsync(userId, currentAdminEmail);
 
-        var result = await _userManager.DeleteAsync(user);
+        if (response.Succeeded)
+            return Ok(response);
 
-        if (!result.Succeeded)
-        {
-            return BadRequest(new BasicResponse
-            {
-                Succeeded = false,
-                Message = string.Join(" ,", result.Errors.Select(e => e.Description))
-            });
-        }
-
-        return Ok(new BasicResponse
-        {
-            Succeeded = true,
-            Message = $"User {user.Email} has been deleted."
-        });
+        return BadRequest(response);
     }
 }
 
