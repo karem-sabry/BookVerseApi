@@ -64,7 +64,11 @@ public class AdminController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> RemoveAdminRole(Guid userId)
     {
-        var response = await _adminService.RemoveAdminRoleAsync(userId);
+        var currentAdminIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (currentAdminIdClaim == null || !Guid.TryParse(currentAdminIdClaim, out var currentAdminId))
+            return Unauthorized(new BasicResponse { Succeeded = false, Message = "Invalid admin user." });
+        
+        var response = await _adminService.RemoveAdminRoleAsync(userId,currentAdminId);
 
         if (response.Succeeded)
             return Ok(response);

@@ -93,7 +93,7 @@ public class AdminService : IAdminService
         }
     }
 
-    public async Task<BasicResponse> RemoveAdminRoleAsync(Guid userId)
+    public async Task<BasicResponse> RemoveAdminRoleAsync(Guid userId,Guid currentAdminId)
     {
         try
         {
@@ -103,6 +103,10 @@ public class AdminService : IAdminService
                 return new BasicResponse { Succeeded = false, Message = "User not found." };
             }
 
+            if (user.Id == currentAdminId)
+            {
+                return new BasicResponse { Succeeded = false, Message = "You cannot remove your own admin role." };
+            }
             if (!await _userManager.IsInRoleAsync(user,IdentityRoleConstants.Admin))
             {
                 return new BasicResponse { Succeeded = false, Message = "User is not an Admin." };

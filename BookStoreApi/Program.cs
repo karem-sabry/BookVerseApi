@@ -113,13 +113,13 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "BookStore API",
+        Title = "BookVerse API",
         Version = "v1",
         Description = "A comprehensive bookstore API with authentication and authorization",
         Contact = new OpenApiContact
         {
-            Name = "BookStore Support",
-            Email = "support@bookstore.com"
+            Name = "BookVerse Support",
+            Email = "support@bookverse.com"
         }
     });
     
@@ -172,6 +172,7 @@ builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<IAccountService,AccountService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthTokenProcessor, AuthTokenProcessorService>();
+builder.Services.AddScoped<IAdminService, AdminService>();
 
 //Email Service
 builder.Services.AddScoped<IEmailService, EmailService>();
@@ -179,6 +180,24 @@ builder.Services.AddScoped<IEmailService, EmailService>();
 //AutoMapper
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
+// ✅ ADDED: CORS Configuration
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("DevelopmentPolicy", policy =>
+    {
+        policy.AllowAnyOrigin()
+            .AllowAnyMethod()
+            .AllowAnyHeader();
+    });
+    
+    options.AddPolicy("ProductionPolicy", policy =>
+    {
+        policy.WithOrigins("https://bookverseapi.com")
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
+    });
+});
 var app = builder.Build();
 
 //Database Seeding
@@ -211,6 +230,13 @@ if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
+    app.UseCors("DevelopmentPolicy");
+}
+else
+{
+    app.UseCors("ProductionPolicy");
+    app.UseHsts();
+
 }
 
 //Security Headers middleware
