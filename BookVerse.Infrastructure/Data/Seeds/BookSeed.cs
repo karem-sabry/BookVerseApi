@@ -236,7 +236,7 @@ public static class BookSeed
             },
             new()
             {
-                Id = 42, Title = "The Art of War", Price = 11.99m, PublishDate =new DateOnly(1910, 1, 1),
+                Id = 42, Title = "The Art of War", Price = 11.99m, PublishDate = new DateOnly(1910, 1, 1),
                 CreatedAtUtc = now, UpdatedAtUtc = now, CreatedBy = "System", UpdatedBy = "System"
             },
 

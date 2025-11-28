@@ -2,5 +2,4 @@
 
 public record LogoutResponse : BasicResponse
 {
-  
 }

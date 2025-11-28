@@ -2,8 +2,8 @@ using System.Security.Claims;
 using System.Text;
 using BookVerse.Application.Interfaces;
 using BookVerse.Core.Entities;
+using BookVerse.Core.Models;
 using BookVerse.Infrastructure.Data;
-using BookVerse.Infrastructure.Models;
 using BookVerse.Infrastructure.Repositories;
 using BookVerse.Infrastructure.Services;
 using BookVerseApi.Middlewares;
@@ -20,7 +20,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddUserSecrets<Program>();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),sqlOptions=>sqlOptions.MigrationsAssembly("BookVerse.Infrastructure")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
+        sqlOptions => sqlOptions.MigrationsAssembly("BookVerse.Infrastructure")));
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
@@ -29,31 +30,28 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 }).AddNewtonsoftJson();
 
 builder.Services.AddIdentity<User, IdentityRole<Guid>>(opt =>
-{
-    //Password requirements
-    opt.Password.RequireDigit = true;
-    opt.Password.RequireLowercase = true;
-    opt.Password.RequireUppercase = true;
-    opt.Password.RequireNonAlphanumeric = true;
-    opt.Password.RequiredLength = 8;
-    
-    //User requirements
-    opt.User.RequireUniqueEmail = true;
-        
-    //Lockout settings
-    opt.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
-    opt.Lockout.MaxFailedAccessAttempts = 5;
-    opt.Lockout.AllowedForNewUsers = true;
-    
-    //Token providers
-    opt.Tokens.PasswordResetTokenProvider = TokenOptions.DefaultProvider;
-}).AddEntityFrameworkStores<AppDbContext>()
-.AddDefaultTokenProviders();
+    {
+        //Password requirements
+        opt.Password.RequireDigit = true;
+        opt.Password.RequireLowercase = true;
+        opt.Password.RequireUppercase = true;
+        opt.Password.RequireNonAlphanumeric = true;
+        opt.Password.RequiredLength = 8;
 
-builder.Services.Configure<DataProtectionTokenProviderOptions>(opt =>
-{
-    opt.TokenLifespan = TimeSpan.FromHours(2);
-});
+        //User requirements
+        opt.User.RequireUniqueEmail = true;
+
+        //Lockout settings
+        opt.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+        opt.Lockout.MaxFailedAccessAttempts = 5;
+        opt.Lockout.AllowedForNewUsers = true;
+
+        //Token providers
+        opt.Tokens.PasswordResetTokenProvider = TokenOptions.DefaultProvider;
+    }).AddEntityFrameworkStores<AppDbContext>()
+    .AddDefaultTokenProviders();
+
+builder.Services.Configure<DataProtectionTokenProviderOptions>(opt => { opt.TokenLifespan = TimeSpan.FromHours(2); });
 builder.Services.AddAuthentication(opt =>
 {
     opt.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -61,11 +59,13 @@ builder.Services.AddAuthentication(opt =>
 }).AddJwtBearer(options =>
 {
     var jwtOptions = builder.Configuration.GetSection(JwtOptions.JwtOptionsKey).Get<JwtOptions>() ??
-                     throw new ArgumentException($"JWT configuration is missing. Please configure '{JwtOptions.JwtOptionsKey}' section.");
+                     throw new ArgumentException(
+                         $"JWT configuration is missing. Please configure '{JwtOptions.JwtOptionsKey}' section.");
     if (string.IsNullOrEmpty(jwtOptions.Secret) || jwtOptions.Secret.Length < 32)
     {
         throw new ArgumentException("JWT Secret must be at least 32 characters long.");
     }
+
     options.TokenValidationParameters = new TokenValidationParameters
     {
         ValidateIssuer = true,
@@ -78,7 +78,7 @@ builder.Services.AddAuthentication(opt =>
         RoleClaimType = ClaimTypes.Role,
         ClockSkew = TimeSpan.FromMinutes(5)
     };
-    
+
     //Jwt events
     options.Events = new JwtBearerEvents
     {
@@ -93,7 +93,6 @@ builder.Services.AddAuthentication(opt =>
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
             logger.LogDebug("Token validated for user: {User}", context.Principal?.Identity?.Name);
             return Task.CompletedTask;
-
         }
     };
 });
@@ -123,7 +122,7 @@ builder.Services.AddSwaggerGen(options =>
             Email = "support@bookverse.com"
         }
     });
-    
+
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -157,20 +156,18 @@ builder.Services.Configure<EmailOptions>(builder.Configuration.GetSection("Email
 
 // DEPENDENCY INJECTION - SERVICES & REPOSITORIES
 
+builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 //Books
-builder.Services.AddScoped<IBooksService,BooksService>();
-builder.Services.AddScoped<IBookRepository, BookRepository>();
+builder.Services.AddScoped<IBooksService, BooksService>();
 
 //Authors
-builder.Services.AddScoped<IAuthorsService,AuthorsService>();
-builder.Services.AddScoped<IAuthorRepository, AuthorRepository>();
+builder.Services.AddScoped<IAuthorsService, AuthorsService>();
 
 //Categories
-builder.Services.AddScoped<ICategoryService,CategoryService>();
-builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
+builder.Services.AddScoped<ICategoryService, CategoryService>();
 
 // Authentication & Users
-builder.Services.AddScoped<IAccountService,AccountService>();
+builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IAuthTokenProcessor, AuthTokenProcessorService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
@@ -190,7 +187,7 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod()
             .AllowAnyHeader();
     });
-    
+
     options.AddPolicy("ProductionPolicy", policy =>
     {
         policy.WithOrigins("https://bookverseapi.com")
@@ -209,19 +206,17 @@ using (var scope = app.Services.CreateScope())
     try
     {
         logger.LogInformation("Starting database seeding...");
-        
+
         var context = services.GetRequiredService<AppDbContext>();
         var userManager = services.GetRequiredService<UserManager<User>>();
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
         var adminOptions = services.GetRequiredService<IOptions<AdminUserOptions>>();
-       
-        await DbInitializer.SeedDataAsync(context, userManager, roleManager,adminOptions,logger);
-        logger.LogInformation("Database seeding completed successfully");
 
+        await DbInitializer.SeedDataAsync(context, userManager, roleManager, adminOptions, logger);
+        logger.LogInformation("Database seeding completed successfully");
     }
     catch (Exception ex)
     {
-
         logger.LogError(ex, "An error occurred while seeding the database.");
     }
 }
@@ -237,7 +232,6 @@ else
 {
     app.UseCors("ProductionPolicy");
     app.UseHsts();
-
 }
 
 //Security Headers middleware

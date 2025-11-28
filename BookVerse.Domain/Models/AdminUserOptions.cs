@@ -1,4 +1,4 @@
-﻿namespace BookVerse.Infrastructure.Models;
+﻿namespace BookVerse.Core.Models;
 
 public class AdminUserOptions
 {

@@ -1,5 +1,6 @@
 ﻿using BookVerse.Application.Dtos.Author;
 using BookVerse.Application.Interfaces;
+using BookVerse.Core.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,10 +9,9 @@ namespace BookVerseApi.Controllers;
 [ApiController]
 [Route("api/[controller]")]
 [Produces("application/json")]
-public class AuthorController:ControllerBase
+public class AuthorController : ControllerBase
 {
     private readonly IAuthorsService _service;
-
     public AuthorController(IAuthorsService service)
     {
         _service = service;
@@ -19,28 +19,32 @@ public class AuthorController:ControllerBase
 
     [HttpGet]
     [AllowAnonymous]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<ActionResult<IEnumerable<AuthorReadDto>>> GetAuthors()
+    [ProducesResponseType(typeof(PagedResult<AuthorsReadDto>),StatusCodes.Status200OK)]
+    public async Task<ActionResult<PagedResult<AuthorReadDto>>> GetAuthors([FromQuery] QueryParameters parameters)
     {
-        var authors = await _service.GetAllAsync();
+        var authors = await _service.GetPagedAsync(parameters);
         return Ok(authors);
     }
 
     [HttpGet("{id}")]
     [AllowAnonymous]
-    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(AuthorReadDto),StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<AuthorReadDto>> GetAuthor(int id)
     {
         var author = await _service.GetByIdAsync(id);
+        if (author == null) return NotFound();
         return Ok(author);
     }
-    
+
     [HttpPost]
     [Authorize(Roles = "Admin")]
+    [ProducesResponseType(typeof(AuthorReadDto),StatusCodes.Status201Created)]
     public async Task<ActionResult<AuthorReadDto>> CreateAuthor(AuthorCreateDto authorDto)
     {
-        return await _service.CreateAsync(authorDto);
+        var createdAuthor =await _service.CreateAsync(authorDto);
+
+        return CreatedAtAction(nameof(GetAuthor), new { id = createdAuthor.Id }, createdAuthor);
     }
 
     [HttpPut("{id}")]
@@ -58,6 +62,6 @@ public class AuthorController:ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteAuthor(int id)
     {
-        return await _service.DeleteAsync(id) ? NoContent():NotFound();
+        return await _service.DeleteAsync(id) ? NoContent() : NotFound();
     }
 }

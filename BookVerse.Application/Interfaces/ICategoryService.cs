@@ -1,9 +1,11 @@
 ﻿using BookVerse.Application.Dtos.Category;
+using BookVerse.Core.Models;
 
 namespace BookVerse.Application.Interfaces;
 
 public interface ICategoryService
 {
+    Task<PagedResult<CategoriesReadDto>> GetPagedAsync(QueryParameters parameters);
     Task<IEnumerable<CategoriesReadDto>> GetAllAsync();
     Task<CategoryReadDto?> GetByIdAsync(int id);
     Task<CategoryReadDto> CreateAsync(CategoryCreateDto categoryDto);

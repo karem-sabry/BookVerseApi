@@ -5,7 +5,6 @@
     "anonymousAuthentication": true
   },
   "profiles": {
-    
     "https": {
       "commandName": "Project",
       "dotnetRunMessages": true,
@@ -15,7 +14,7 @@
       "environmentVariables": {
         "ASPNETCORE_ENVIRONMENT": "Development"
       }
-    } ,
+    },
     "http": {
       "commandName": "Project",
       "dotnetRunMessages": true,

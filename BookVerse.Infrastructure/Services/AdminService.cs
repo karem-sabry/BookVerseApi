@@ -14,12 +14,14 @@ public class AdminService : IAdminService
     private readonly ILogger<AdminService> _logger;
     private readonly RoleManager<IdentityRole<Guid>> _roleManager;
 
-    public AdminService(UserManager<User> userManager,ILogger<AdminService> logger,RoleManager<IdentityRole<Guid>> roleManager)
+    public AdminService(UserManager<User> userManager, ILogger<AdminService> logger,
+        RoleManager<IdentityRole<Guid>> roleManager)
     {
         _userManager = userManager;
         _logger = logger;
         _roleManager = roleManager;
     }
+
     public async Task<IEnumerable<UserWithRolesDto>> GetAllUsersAsync()
     {
         var users = await _userManager.Users.ToListAsync();
@@ -71,7 +73,7 @@ public class AdminService : IAdminService
                 return new BasicResponse { Succeeded = false, Message = "You cannot change your own role." };
             }
 
-            if (await _userManager.IsInRoleAsync(user,IdentityRoleConstants.Admin))
+            if (await _userManager.IsInRoleAsync(user, IdentityRoleConstants.Admin))
             {
                 return new BasicResponse { Succeeded = false, Message = "User is already an admin." };
             }
@@ -83,9 +85,9 @@ public class AdminService : IAdminService
                 return new BasicResponse
                     { Succeeded = false, Message = string.Join(", ", result.Errors.Select(e => e.Description)) };
             }
+
             _logger.LogInformation($"User {user.Email} granted Admin role by admin");
             return new BasicResponse { Succeeded = true, Message = $"User {user.Email} has been granted Admin role." };
-
         }
         catch (Exception ex)
         {
@@ -94,7 +96,7 @@ public class AdminService : IAdminService
         }
     }
 
-    public async Task<BasicResponse> RemoveAdminRoleAsync(Guid userId,Guid currentAdminId)
+    public async Task<BasicResponse> RemoveAdminRoleAsync(Guid userId, Guid currentAdminId)
     {
         try
         {
@@ -108,21 +110,24 @@ public class AdminService : IAdminService
             {
                 return new BasicResponse { Succeeded = false, Message = "You cannot remove your own admin role." };
             }
-            if (!await _userManager.IsInRoleAsync(user,IdentityRoleConstants.Admin))
+
+            if (!await _userManager.IsInRoleAsync(user, IdentityRoleConstants.Admin))
             {
                 return new BasicResponse { Succeeded = false, Message = "User is not an Admin." };
-
             }
+
             var result = await _userManager.RemoveFromRoleAsync(user, IdentityRoleConstants.Admin);
             if (!result.Succeeded)
-                return new BasicResponse { Succeeded = false, Message = string.Join(", ", result.Errors.Select(e => e.Description)) };
-            
+                return new BasicResponse
+                    { Succeeded = false, Message = string.Join(", ", result.Errors.Select(e => e.Description)) };
+
             var addResult = await _userManager.AddToRoleAsync(user, IdentityRoleConstants.User);
-                if (!addResult.Succeeded)
-                    return new BasicResponse { Succeeded = false, Message = string.Join(", ", addResult.Errors.Select(e => e.Description)) };
+            if (!addResult.Succeeded)
+                return new BasicResponse
+                    { Succeeded = false, Message = string.Join(", ", addResult.Errors.Select(e => e.Description)) };
 
             _logger.LogInformation("Admin role removed from user {Email}", user.Email);
-    
+
             return new BasicResponse { Succeeded = true, Message = $"Admin role removed from user {user.Email}." };
         }
         catch (Exception ex)
@@ -145,7 +150,8 @@ public class AdminService : IAdminService
 
             var result = await _userManager.DeleteAsync(user);
             if (!result.Succeeded)
-                return new BasicResponse { Succeeded = false, Message = string.Join(", ", result.Errors.Select(e => e.Description)) };
+                return new BasicResponse
+                    { Succeeded = false, Message = string.Join(", ", result.Errors.Select(e => e.Description)) };
 
             _logger.LogInformation("User {Email} deleted by admin", user.Email);
 

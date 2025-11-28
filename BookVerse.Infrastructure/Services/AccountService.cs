@@ -20,7 +20,9 @@ public class AccountService : IAccountService
     private readonly IEmailService _emailService;
     private readonly ILogger<AccountService> _logger;
 
-    public AccountService(IAuthTokenProcessor authTokenProcessor,UserManager<User> userManager,RoleManager<IdentityRole<Guid>> roleManager, IUserRepository userRepository,IEmailService emailService,ILogger<AccountService> logger)
+    public AccountService(IAuthTokenProcessor authTokenProcessor, UserManager<User> userManager,
+        RoleManager<IdentityRole<Guid>> roleManager, IUserRepository userRepository, IEmailService emailService,
+        ILogger<AccountService> logger)
     {
         _authTokenProcessor = authTokenProcessor;
         _userManager = userManager;
@@ -29,6 +31,7 @@ public class AccountService : IAccountService
         _emailService = emailService;
         _logger = logger;
     }
+
     public async Task<RegisterResponse> RegisterAsync(RegisterRequest registerRequest)
     {
         try
@@ -57,8 +60,9 @@ public class AccountService : IAccountService
                     Errors = new[] { "You can only register as a normal user." }
                 };
             }
+
             var identityRoleName = GetIdentityRoleName(registerRequest.Role);
-            
+
             var roleExists = await _roleManager.RoleExistsAsync(identityRoleName);
 
             if (!roleExists)
@@ -78,7 +82,7 @@ public class AccountService : IAccountService
 
             // user.PasswordHash = _userManager.PasswordHasher.HashPassword(user, registerRequest.Password);
 
-            var result = await _userManager.CreateAsync(user,registerRequest.Password);
+            var result = await _userManager.CreateAsync(user, registerRequest.Password);
 
             if (!result.Succeeded)
             {
@@ -93,6 +97,7 @@ public class AccountService : IAccountService
                     Errors = result.Errors.Select(x => x.Description)
                 };
             }
+
             await _userManager.AddToRoleAsync(user, identityRoleName);
             user.CreatedAtUtc = DateTime.UtcNow;
             user.UpdatedAtUtc = DateTime.UtcNow;
@@ -168,7 +173,6 @@ public class AccountService : IAccountService
 
     public async Task<BasicResponse> DeleteMyAccountAsync(string userEmail)
     {
-        
         try
         {
             var user = await _userManager.FindByEmailAsync(userEmail);
@@ -197,6 +201,7 @@ public class AccountService : IAccountService
                     Message = "Unable to delete account."
                 };
             }
+
             _logger.LogInformation("Account deleted successfully: {Email}", userEmail);
 
             return new BasicResponse
@@ -335,7 +340,7 @@ public class AccountService : IAccountService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error sending password reset email for {Email}", request.Email);
-            
+
             // ✅ SECURITY: Still return success to prevent information leakage
             return new BasicResponse
             {
@@ -383,7 +388,7 @@ public class AccountService : IAccountService
                 Message = "Password has been reset successfully."
             };
         }
-        catch (Exception ex)    
+        catch (Exception ex)
         {
             _logger.LogError(ex, "Error resetting password for {Email}", request.Email);
             return new BasicResponse
@@ -466,27 +471,8 @@ public class AccountService : IAccountService
         return role switch
         {
             Role.User => IdentityRoleConstants.User,
-            Role.Admin =>IdentityRoleConstants.Admin,
+            Role.Admin => IdentityRoleConstants.Admin,
             _ => throw new ArgumentOutOfRangeException(nameof(role), role, "Provided role is not supported.")
         };
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

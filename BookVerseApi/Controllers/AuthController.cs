@@ -20,11 +20,12 @@ public class AuthController : ControllerBase
     {
         _accountService = accountService;
     }
+
     [HttpPost("register")]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(RegisterResponse),StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(RegisterResponse),StatusCodes.Status400BadRequest)]
-    public async Task<IActionResult> Register([FromBody]RegisterRequest registerRequest)
+    [ProducesResponseType(typeof(RegisterResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RegisterResponse), StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Register([FromBody] RegisterRequest registerRequest)
     {
         var response = await _accountService.RegisterAsync(registerRequest);
 
@@ -35,6 +36,7 @@ public class AuthController : ControllerBase
 
         return BadRequest(response);
     }
+
     [HttpPost("login")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
@@ -67,9 +69,9 @@ public class AuthController : ControllerBase
 
     [Authorize]
     [HttpPost("logout")]
-    [ProducesResponseType(typeof(LogoutResponse),StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(LogoutResponse),StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(typeof(LogoutResponse),StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(LogoutResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(LogoutResponse), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(LogoutResponse), StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Logout()
     {
         var email = User.FindFirstValue(ClaimTypes.Email);
@@ -90,6 +92,7 @@ public class AuthController : ControllerBase
 
         return BadRequest(response);
     }
+
     [Authorize]
     [HttpGet("me")]
     [ProducesResponseType(typeof(UserProfileDto), StatusCodes.Status200OK)]
@@ -107,6 +110,7 @@ public class AuthController : ControllerBase
             return NotFound("User not found.");
         return Ok(user);
     }
+
     [AllowAnonymous]
     [HttpPost("forgot-password")]
     [ProducesResponseType(typeof(BasicResponse), StatusCodes.Status200OK)]
@@ -116,6 +120,7 @@ public class AuthController : ControllerBase
         var response = await _accountService.ForgotPasswordAsync(request);
         return Ok(response);
     }
+
     [AllowAnonymous]
     [HttpPost("reset-password")]
     [ProducesResponseType(typeof(BasicResponse), StatusCodes.Status200OK)]
@@ -130,12 +135,11 @@ public class AuthController : ControllerBase
 
         return BadRequest(response);
     }
-        
+
     [Authorize]
     [HttpDelete("delete-account")]
     public async Task<IActionResult> DeleteMyAccount()
     {
-            
         var email = User.FindFirstValue(ClaimTypes.Email);
         if (string.IsNullOrWhiteSpace(email))
         {
@@ -145,6 +149,7 @@ public class AuthController : ControllerBase
                 Message = "Invalid user context."
             });
         }
+
         var result = await _accountService.DeleteMyAccountAsync(email);
         if (!result.Succeeded)
         {

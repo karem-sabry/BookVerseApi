@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using BookVerse.Application.Interfaces;
 using BookVerse.Core.Entities;
-using BookVerse.Infrastructure.Models;
+using BookVerse.Core.Models;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using JwtRegisteredClaimNames = Microsoft.IdentityModel.JsonWebTokens.JwtRegisteredClaimNames;
@@ -19,7 +19,8 @@ public class AuthTokenProcessorService : IAuthTokenProcessor
     {
         _jwtOptions = jwtOptions.Value;
     }
-    public (string jwtToken, DateTime expiresAtUtc) GenerateJwtToken(User user,IList<string> roles)
+
+    public (string jwtToken, DateTime expiresAtUtc) GenerateJwtToken(User user, IList<string> roles)
     {
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_jwtOptions.Secret));
 
@@ -31,7 +32,7 @@ public class AuthTokenProcessorService : IAuthTokenProcessor
             new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new Claim(JwtRegisteredClaimNames.Email, user.Email!),
             new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
-            new Claim(ClaimTypes.Name,user.ToString())
+            new Claim(ClaimTypes.Name, user.ToString())
         }.Concat(roles.Select(r => new Claim(ClaimTypes.Role, r)));
         var expires = DateTime.UtcNow.AddMinutes(_jwtOptions.ExpirationTimeInMinutes);
 

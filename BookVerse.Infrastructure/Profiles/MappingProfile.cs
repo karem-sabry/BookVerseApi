@@ -7,45 +7,45 @@ using BookVerse.Core.Entities;
 
 namespace BookVerse.Infrastructure.Profiles;
 
-public class MappingProfile:Profile
+public class MappingProfile : Profile
 {
     public MappingProfile()
     {
         //Book Mapping
         CreateMap<Book, BookReadDto>()
-            .ForMember(dest => dest.Authors, 
+            .ForMember(dest => dest.Authors,
                 opt => opt.MapFrom(src => src.BookAuthors.Select(ba => ba.Author)))
-            .ForMember(dest => dest.Categories, 
+            .ForMember(dest => dest.Categories,
                 opt => opt.MapFrom(src => src.BookCategories.Select(bc => bc.Category)));
 
         CreateMap<Book, BookBriefDto>();
         CreateMap<BookCreateDto, Book>();
         CreateMap<Book, BookReadDto>()
-            .ForMember(dest => dest.Authors, 
+            .ForMember(dest => dest.Authors,
                 opt => opt.MapFrom(src => src.BookAuthors.Select(ba => ba.Author)))
-            .ForMember(dest => dest.Categories, 
+            .ForMember(dest => dest.Categories,
                 opt => opt.MapFrom(src => src.BookCategories.Select(bc => bc.Category)));
         CreateMap<BookUpdateDto, Book>();
-        
+
         // Author Mapping
         CreateMap<Author, AuthorBriefDto>();
         CreateMap<Author, AuthorsReadDto>();
         CreateMap<Author, AuthorReadDto>()
-            .ForMember(dest => dest.Books, 
+            .ForMember(dest => dest.Books,
                 opt => opt.MapFrom(src => src.BookAuthors
                     .Select(ba => ba.Book)));
         CreateMap<AuthorCreateDto, Author>();
         CreateMap<AuthorUpdateDto, Author>();
-        
+
         //Category Mapping
+        CreateMap<Category, CategoryBriefDto>();
+        CreateMap<Category, CategoriesReadDto>();
+        CreateMap<Category, CategoryReadDto>().ForMember(dest => dest.Books,
+            opt => opt.MapFrom(src => src.BookCategories.Select(bc => bc.Book)));
         CreateMap<CategoryCreateDto, Category>();
         CreateMap<CategoryUpdateDto, Category>();
-        CreateMap<Category, CategoryReadDto>().ForMember(dest=>dest.Books,opt=>opt.MapFrom(src=>src.BookCategories.Select(bc=>bc.Book)));
-        CreateMap<Category, CategoriesReadDto>();
-        CreateMap<Category, CategoryBriefDto>();
-        CreateMap<CategoryUpdateDto, Category>();
-        
-        
+
+
         CreateMap<User, UserProfileDto>();
     }
 }

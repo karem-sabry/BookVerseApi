@@ -28,7 +28,7 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-        
+
         // Configure User properties
         modelBuilder.Entity<User>()
             .Property(u => u.FirstName).HasMaxLength(256);
@@ -64,7 +64,7 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             .WithMany(c => c.BookCategories)
             .HasForeignKey(bc => bc.CategoryId)
             .OnDelete(DeleteBehavior.Cascade);
-        
+
         SeedData(modelBuilder);
     }
 
@@ -87,15 +87,15 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
                     NormalizedName = IdentityRoleConstants.User.ToUpper()
                 }
             });
-        
+
         //Seed Authors, Categories, Books, and Relationships
         modelBuilder.Entity<Author>().HasData(AuthorSeed.GetAuthors());
         modelBuilder.Entity<Category>().HasData(CategorySeed.GetCategories());
         modelBuilder.Entity<Book>().HasData(BookSeed.GetBooks());
         modelBuilder.Entity<BookAuthor>().HasData(BookAuthorSeed.GetBookAuthors());
         modelBuilder.Entity<BookCategory>().HasData(BookCategorySeed.GetBookCategories());
-        
     }
+
     public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         var currentUserEmail = _httpContextAccessor?.HttpContext?.User?.Identity?.Name ?? "System";

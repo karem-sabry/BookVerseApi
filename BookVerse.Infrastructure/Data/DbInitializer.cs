@@ -1,6 +1,6 @@
 ﻿using BookVerse.Core.Constants;
 using BookVerse.Core.Entities;
-using BookVerse.Infrastructure.Models;
+using BookVerse.Core.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -11,16 +11,16 @@ namespace BookVerse.Infrastructure.Data;
 public static class DbInitializer
 {
     public static async Task SeedDataAsync(AppDbContext context, UserManager<User> userManager,
-        RoleManager<IdentityRole<Guid>> roleManager,IOptions<AdminUserOptions> adminOptions,ILogger logger)
+        RoleManager<IdentityRole<Guid>> roleManager, IOptions<AdminUserOptions> adminOptions, ILogger logger)
     {
         //Apply pending migrations
         await context.Database.MigrateAsync();
-        
+
         //Seed roles if they don`t exist
         await SeedRolesAsync(roleManager);
 
         //Seed admin user if doesn't exist
-        await SeedAdminUserAsync(userManager,adminOptions.Value,logger);
+        await SeedAdminUserAsync(userManager, adminOptions.Value, logger);
     }
 
     private static async Task SeedRolesAsync(RoleManager<IdentityRole<Guid>> roleManager)
@@ -46,22 +46,25 @@ public static class DbInitializer
             });
         }
     }
-    private static async Task SeedAdminUserAsync(UserManager<User> userManager,AdminUserOptions admin, ILogger logger)
+
+    private static async Task SeedAdminUserAsync(UserManager<User> userManager, AdminUserOptions admin, ILogger logger)
     {
         if (string.IsNullOrWhiteSpace(admin.Email))
         {
             logger.LogWarning("AdminUser.Email is missing");
             return;
         }
+
         var existingAdmin = await userManager.FindByEmailAsync(admin.Email);
         if (existingAdmin != null)
         {
             logger.LogInformation($"Admin user {admin.Email} already exists.");
-            if (!await userManager.IsInRoleAsync(existingAdmin,IdentityRoleConstants.Admin))
+            if (!await userManager.IsInRoleAsync(existingAdmin, IdentityRoleConstants.Admin))
             {
                 await userManager.AddToRoleAsync(existingAdmin, IdentityRoleConstants.Admin);
                 logger.LogInformation("Added Admin role to existing admin user.");
             }
+
             return;
         }
 
@@ -76,6 +79,7 @@ public static class DbInitializer
             {
                 logger.LogError($" - {error.Description}");
             }
+
             return;
         }
 
@@ -86,22 +90,3 @@ public static class DbInitializer
         logger.LogInformation("   LastName: {LastName}", admin.LastName);
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -6,8 +6,8 @@ public class User : IdentityUser<Guid>
 {
     public required string FirstName { get; set; }
     public required string LastName { get; set; }
-    public string?  RefreshToken { get; set; }
-    public DateTime?  RefreshTokenExpiresAtUtc { get; set; }
+    public string? RefreshToken { get; set; }
+    public DateTime? RefreshTokenExpiresAtUtc { get; set; }
     public DateTime CreatedAtUtc { get; set; }
     public DateTime UpdatedAtUtc { get; set; }
 

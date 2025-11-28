@@ -1,6 +1,6 @@
 ﻿using System.Net;
 using System.Text.Json;
-using BookVerse.Infrastructure.Models;
+using BookVerse.Core.Models;
 
 namespace BookVerseApi.Middlewares;
 

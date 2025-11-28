@@ -1,9 +1,11 @@
 ﻿using BookVerse.Application.Dtos.Book;
+using BookVerse.Core.Models;
 
 namespace BookVerse.Application.Interfaces;
 
 public interface IBooksService
 {
+    Task<PagedResult<BookReadDto>> GetPagedAsync(BookQueryParameters parameters);
     Task<IEnumerable<BookReadDto>> GetAllAsync();
     Task<BookReadDto?> GetByIdAsync(int id);
     Task<BookReadDto> CreateAsync(BookCreateDto bookDto);

@@ -1,12 +1,11 @@
-﻿using System.Linq.Expressions;
-using BookVerse.Core.Entities;
+﻿using BookVerse.Core.Entities;
+using BookVerse.Core.Models;
 
 namespace BookVerse.Application.Interfaces;
 
 public interface IBookRepository : IGenericRepository<Book>
 {
-    Task<IEnumerable<Book>> FindAsync(Expression<Func<Book, bool>> predicate);
-    Task<Book?> GetByIdAsync(int id);
-    Task<IEnumerable<Book>> GetAllAsync();
+    Task<Book?> GetByIdWithDetailsAsync(int id);
+    Task<PagedResult<Book>> GetPagedWithDetailsAsync(BookQueryParameters parameters);
     Task<Book?> GetExistingBook(Book book);
 }

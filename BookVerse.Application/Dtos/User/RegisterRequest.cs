@@ -21,7 +21,8 @@ public record RegisterRequest
     [Required(ErrorMessage = "Password is required")]
     [StringLength(100, MinimumLength = 8, ErrorMessage = "Password must be between 8 and 100 characters")]
     [RegularExpression(@"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,}$",
-        ErrorMessage = "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character")]
+        ErrorMessage =
+            "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character")]
     [DataType(DataType.Password)]
 
     public required string Password { get; init; }
@@ -29,5 +30,4 @@ public record RegisterRequest
     [Required(ErrorMessage = "Role is required")]
     [EnumDataType(typeof(Role), ErrorMessage = "Invalid role")]
     public required Role Role { get; init; }
-    
 }

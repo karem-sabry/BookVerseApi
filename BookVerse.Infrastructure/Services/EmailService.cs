@@ -1,7 +1,7 @@
 ﻿using System.Net;
 using System.Net.Mail;
 using BookVerse.Application.Interfaces;
-using BookVerse.Infrastructure.Models;
+using BookVerse.Core.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
@@ -11,12 +11,13 @@ public class EmailService : IEmailService
 {
     private readonly EmailOptions _emailOptions;
     private readonly ILogger<EmailService> _logger;
-    
-    public EmailService(IOptions<EmailOptions> emailOptions,ILogger<EmailService> logger)
+
+    public EmailService(IOptions<EmailOptions> emailOptions, ILogger<EmailService> logger)
     {
         _emailOptions = emailOptions.Value;
         _logger = logger;
     }
+
     public async Task SendEmailAsync(string toEmail, string subject, string body)
     {
         try
@@ -40,7 +41,7 @@ public class EmailService : IEmailService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex,$"Failed to send email to{toEmail}.");
+            _logger.LogError(ex, $"Failed to send email to{toEmail}.");
         }
     }
 }

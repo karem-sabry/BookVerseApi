@@ -8,7 +8,7 @@ namespace BookVerseApi.Controllers;
 
 [Route("api/[controller]")]
 [ApiController]
-[Authorize(Roles= "Admin")]
+[Authorize(Roles = "Admin")]
 public class AdminController : ControllerBase
 {
     private readonly IAdminService _adminService;
@@ -17,20 +17,21 @@ public class AdminController : ControllerBase
     {
         _adminService = adminService;
     }
-    
+
     [HttpGet("users")]
     [Authorize(Roles = "Admin")]
-    [ProducesResponseType(typeof(IEnumerable<UserWithRolesDto>),StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(IEnumerable<UserWithRolesDto>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> GetAllUsers()
     {
         var users = await _adminService.GetAllUsersAsync();
         return Ok(users);
     }
+
     [HttpGet("users/{userId:guid}")]
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    [ProducesResponseType(typeof(UserWithRolesDto),StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(UserWithRolesDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetUserById(Guid userId)
     {
@@ -44,8 +45,8 @@ public class AdminController : ControllerBase
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [HttpPost("users/{userId:guid}/make-admin")]
-    [ProducesResponseType(typeof(BasicResponse),StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(BasicResponse),StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(BasicResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BasicResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> MakeUserAdmin(Guid userId)
     {
@@ -57,25 +58,27 @@ public class AdminController : ControllerBase
 
         return BadRequest(response);
     }
+
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [HttpPost("users/{userId:guid}/remove-admin")]
-    [ProducesResponseType(typeof(BasicResponse),StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(BasicResponse),StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(BasicResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BasicResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> RemoveAdminRole(Guid userId)
     {
         var currentAdminIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (currentAdminIdClaim == null || !Guid.TryParse(currentAdminIdClaim, out var currentAdminId))
             return Unauthorized(new BasicResponse { Succeeded = false, Message = "Invalid admin user." });
-        
-        var response = await _adminService.RemoveAdminRoleAsync(userId,currentAdminId);
+
+        var response = await _adminService.RemoveAdminRoleAsync(userId, currentAdminId);
 
         if (response.Succeeded)
             return Ok(response);
 
         return BadRequest(response);
     }
+
     [Authorize(Roles = "Admin")]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [HttpDelete("users/{userId:guid}")]
@@ -93,13 +96,3 @@ public class AdminController : ControllerBase
         return BadRequest(response);
     }
 }
-
-
-
-
-
-
-
-
-
-
