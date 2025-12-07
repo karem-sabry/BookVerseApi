@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text;
 using BookVerse.Application.Interfaces;
+using BookVerse.Core.Constants;
 using BookVerse.Core.Entities;
 using BookVerse.Core.Models;
 using BookVerse.Infrastructure.Data;
@@ -101,9 +102,9 @@ builder.Services.AddAuthentication(opt =>
 
 builder.Services.AddAuthorization(options =>
 {
-    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Admin"));
-    options.AddPolicy("UserOnly", policy => policy.RequireRole("User"));
-    options.AddPolicy("AdminOrUser", policy => policy.RequireRole("Admin", "User"));
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole(IdentityRoleConstants.Admin));
+    options.AddPolicy("UserOnly", policy => policy.RequireRole(IdentityRoleConstants.User));
+    // options.AddPolicy("AdminOrUser", policy => policy.RequireRole(IdentityRoleConstants.Admin, IdentityRoleConstants.User));
 });
 
 builder.Services.AddEndpointsApiExplorer();

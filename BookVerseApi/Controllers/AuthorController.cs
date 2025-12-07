@@ -1,5 +1,7 @@
 ﻿using BookVerse.Application.Dtos.Author;
+using BookVerse.Application.Dtos.User;
 using BookVerse.Application.Interfaces;
+using BookVerse.Core.Constants;
 using BookVerse.Core.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -20,48 +22,126 @@ public class AuthorController : ControllerBase
     [HttpGet]
     [AllowAnonymous]
     [ProducesResponseType(typeof(PagedResult<AuthorsReadDto>),StatusCodes.Status200OK)]
-    public async Task<ActionResult<PagedResult<AuthorReadDto>>> GetAuthors([FromQuery] QueryParameters parameters)
+    public async Task<IActionResult> GetAuthors([FromQuery] QueryParameters parameters)
     {
         var authors = await _service.GetPagedAsync(parameters);
         return Ok(authors);
     }
 
-    [HttpGet("{id}")]
+    [HttpGet("{id:int}")]
     [AllowAnonymous]
     [ProducesResponseType(typeof(AuthorReadDto),StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<AuthorReadDto>> GetAuthor(int id)
     {
+        if (id <= 0)
+            return BadRequest(new BasicResponse 
+            { 
+                Succeeded = false, 
+                Message = ErrorMessages.InvalidId 
+            });
         var author = await _service.GetByIdAsync(id);
-        if (author == null) return NotFound();
+        if (author == null) 
+            return NotFound(new BasicResponse 
+            { 
+                Succeeded = false, 
+                Message = ErrorMessages.AuthorNotFound 
+            });
         return Ok(author);
     }
 
     [HttpPost]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = IdentityRoleConstants.Admin)]
     [ProducesResponseType(typeof(AuthorReadDto),StatusCodes.Status201Created)]
-    public async Task<ActionResult<AuthorReadDto>> CreateAuthor(AuthorCreateDto authorDto)
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<ActionResult<AuthorReadDto>> CreateAuthor([FromBody]AuthorCreateDto authorDto)
     {
+        if (!ModelState.IsValid)
+        {
+            var errorMessage = string.Join("; ", ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage));
+
+            return BadRequest(new BasicResponse
+            {
+                Succeeded = false,
+                Message = errorMessage
+            });
+        }
         var createdAuthor =await _service.CreateAsync(authorDto);
 
         return CreatedAtAction(nameof(GetAuthor), new { id = createdAuthor.Id }, createdAuthor);
     }
 
-    [HttpPut("{id}")]
-    [Authorize(Roles = "Admin")]
+    [HttpPut("{id:int}")]
+    [Authorize(Roles = IdentityRoleConstants.Admin)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> UpdateAuthor(int id, AuthorUpdateDto authorDto)
+    public async Task<IActionResult> UpdateAuthor(int id, [FromBody] AuthorUpdateDto authorDto)
     {
-        return await _service.UpdateAsync(id, authorDto) ? NoContent() : NotFound();
+        if (id <= 0)
+            return BadRequest(new BasicResponse 
+            { 
+                Succeeded = false, 
+                Message = ErrorMessages.InvalidId 
+            });
+        if (!ModelState.IsValid)
+        {
+            var errorMessage = string.Join("; ", ModelState.Values
+                .SelectMany(v => v.Errors)
+                .Select(e => e.ErrorMessage));
+
+            return BadRequest(new BasicResponse
+            {
+                Succeeded = false,
+                Message = errorMessage
+            });
+        }
+        var updated = await _service.UpdateAsync(id, authorDto);
+
+        if (!updated)
+        {
+            return NotFound(new BasicResponse
+            {
+                Succeeded = false,
+                Message = ErrorMessages.AuthorNotFound
+            });
+        }
+
+        return NoContent();
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = IdentityRoleConstants.Admin)]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteAuthor(int id)
     {
-        return await _service.DeleteAsync(id) ? NoContent() : NotFound();
+        if (id <= 0)
+            return BadRequest(new BasicResponse 
+            { 
+                Succeeded = false, 
+                Message = ErrorMessages.InvalidId 
+            });
+
+        var deleted = await _service.DeleteAsync(id);
+        if (!deleted)
+        {
+            return NotFound(new BasicResponse 
+            { 
+                Succeeded = false, 
+                Message = ErrorMessages.AuthorNotFound 
+            });
+        }
+        return NoContent();
     }
 }

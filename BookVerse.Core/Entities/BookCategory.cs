@@ -1,6 +1,8 @@
-﻿namespace BookVerse.Core.Entities;
+﻿using BookVerse.Core.Interfaces;
 
-public class BookCategory
+namespace BookVerse.Core.Entities;
+
+public class BookCategory : ITimestampedEntity
 {
     public int BookId { get; set; }
     public Book Book { get; set; } = null!;

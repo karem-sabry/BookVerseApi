@@ -1,4 +1,4 @@
-﻿namespace BookVerse.Application.Interfaces;
+﻿namespace BookVerse.Core.Interfaces;
 
 public interface IEntity
 {
