@@ -12,7 +12,7 @@ public class BookRepository : GenericRepository<Book>, IBookRepository
     {
     }
 
-    public async override Task<IEnumerable<Book>> GetAllAsync()
+    public override async Task<IEnumerable<Book>> GetAllAsync()
     {
         return await _dbSet
             .Include(b => b.BookAuthors).ThenInclude(ba => ba.Author)

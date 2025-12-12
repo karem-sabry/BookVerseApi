@@ -9,7 +9,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\BookVerse.Application\BookVerse.Application.csproj"/>
-        <ProjectReference Include="..\BookVerse.Domain\BookVerse.Domain.csproj"/>
+        <ProjectReference Include="..\BookVerse.Core\BookVerse.Core.csproj" />
 
     </ItemGroup>
 

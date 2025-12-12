@@ -1,5 +1,6 @@
 ﻿using BookVerse.Core.Constants;
 using BookVerse.Core.Entities;
+using BookVerse.Core.Interfaces;
 using BookVerse.Infrastructure.Data.Seeds;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -23,52 +24,67 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<Category> Categories { get; set; }
     public DbSet<BookAuthor> BookAuthors { get; set; }
     public DbSet<BookCategory> BookCategories { get; set; }
-    public DbSet<User> Users { get; set; }
-
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
 
-        // Configure User properties
-        modelBuilder.Entity<User>()
-            .Property(u => u.FirstName).HasMaxLength(256);
-        modelBuilder.Entity<User>()
-            .Property(u => u.LastName).HasMaxLength(256);
-
-        // Configure Many-to-Many: Book-Author
-        modelBuilder.Entity<BookAuthor>()
-            .HasKey(ba => new { ba.BookId, ba.AuthorId });
-        modelBuilder.Entity<BookAuthor>()
-            .HasOne(ba => ba.Book)
-            .WithMany(ba => ba.BookAuthors)
-            .HasForeignKey(ba => ba.BookId)
-            .OnDelete(DeleteBehavior.Cascade);
-        modelBuilder.Entity<BookAuthor>()
-            .HasOne(ba => ba.Author)
-            .WithMany(a => a.BookAuthors)
-            .HasForeignKey(ba => ba.AuthorId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        // Configure Many-to-Many: Book-Category
-        modelBuilder.Entity<BookCategory>()
-            .HasKey(bc => new { bc.BookId, bc.CategoryId });
-
-        modelBuilder.Entity<BookCategory>()
-            .HasOne(bc => bc.Book)
-            .WithMany(b => b.BookCategories)
-            .HasForeignKey(bc => bc.BookId)
-            .OnDelete(DeleteBehavior.Cascade);
-
-        modelBuilder.Entity<BookCategory>()
-            .HasOne(bc => bc.Category)
-            .WithMany(c => c.BookCategories)
-            .HasForeignKey(bc => bc.CategoryId)
-            .OnDelete(DeleteBehavior.Cascade);
-
+        ConfigureUserEntity(modelBuilder);
+        ConfigureBookAuthorRelationship(modelBuilder);
+        ConfigureBookCategoryRelationship(modelBuilder);
         SeedData(modelBuilder);
     }
 
-    public void SeedData(ModelBuilder modelBuilder)
+    private static void ConfigureBookCategoryRelationship(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<BookCategory>(entity =>
+        {
+            entity.HasKey(bc => new { bc.BookId, bc.CategoryId });
+
+            entity.HasOne(bc => bc.Book)
+                .WithMany(b => b.BookCategories)
+                .HasForeignKey(bc => bc.BookId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(bc => bc.Category)
+                .WithMany(c => c.BookCategories)
+                .HasForeignKey(bc => bc.CategoryId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+    }
+
+    private static void ConfigureBookAuthorRelationship(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<BookAuthor>(entity =>
+        {
+            entity.HasKey(ba => new { ba.BookId, ba.AuthorId });
+
+            entity.HasOne(ba => ba.Book)
+                .WithMany(b => b.BookAuthors)
+                .HasForeignKey(ba => ba.BookId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(ba => ba.Author)
+                .WithMany(a => a.BookAuthors)
+                .HasForeignKey(ba => ba.AuthorId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+    }
+
+    private static void ConfigureUserEntity(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.Property(u => u.FirstName)
+                .IsRequired()
+                .HasMaxLength(100);
+            entity.Property(u => u.LastName)
+                .IsRequired()
+                .HasMaxLength(100);
+            entity.Property(u => u.RefreshToken)
+                .HasMaxLength(500);
+        });
+    }
+    private static void SeedData(ModelBuilder modelBuilder)
     {
         // Seed Roles
         modelBuilder.Entity<IdentityRole<Guid>>()
@@ -95,98 +111,58 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.Entity<BookAuthor>().HasData(BookAuthorSeed.GetBookAuthors());
         modelBuilder.Entity<BookCategory>().HasData(BookCategorySeed.GetBookCategories());
     }
-
-    // ✅ REFACTORED: Extracted common logic to eliminate duplication
+    
     private void ApplyAuditInformation()
     {
-        var currentUserEmail = _httpContextAccessor?.HttpContext?.User?.Identity?.Name ?? "System";
+        var currentUserEmail = _httpContextAccessor?.HttpContext?.User?.Identity?.Name ?? ApplicationConstants.SystemUser;
+
+        var currentTime = DateTime.UtcNow;
         var entries = ChangeTracker.Entries()
             .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
         
         foreach (var entry in entries)
         {
-            switch (entry.Entity)
+            if (entry.Entity is IAuditable auditableEntity)
             {
-                case Book book:
-                    ApplyBookAudit(book, entry.State, currentUserEmail);
-                    break;
-                case Author author:
-                    ApplyAuthorAudit(author, entry.State, currentUserEmail);
-                    break;
-                case Category category:
-                    ApplyCategoryAudit(category, entry.State, currentUserEmail);
-                    break;
-                case User user:
-                    ApplyUserAudit(user, entry.State);
-                    break;
-                case BookAuthor bookAuthor when entry.State == EntityState.Added:
-                    bookAuthor.CreatedAtUtc = DateTime.UtcNow;
-                    break;
-                case BookCategory bookCategory when entry.State == EntityState.Added:
-                    bookCategory.CreatedAtUtc = DateTime.UtcNow;
-                    break;
+                if (entry.State == EntityState.Added)
+                {
+                    auditableEntity.CreatedAtUtc = currentTime;
+                    auditableEntity.UpdatedAtUtc = currentTime;
+                    auditableEntity.CreatedBy = currentUserEmail;
+                    auditableEntity.UpdatedBy = currentUserEmail;
+                } 
+                else if (entry.State == EntityState.Modified)
+                {
+                    auditableEntity.UpdatedAtUtc = currentTime;
+                    auditableEntity.UpdatedBy = currentUserEmail;
+
+                    // Prevent anyone from changing the createdBy or createdAt once set.
+                    entry.Property(nameof(IAuditable.CreatedAtUtc)).IsModified = false;
+                    entry.Property(nameof(IAuditable.CreatedBy)).IsModified = false;
+                    
+                }
             }
-        }
-    }
-
-    private void ApplyBookAudit(Book book, EntityState state, string currentUser)
-    {
-        if (state == EntityState.Added)
-        {
-            book.CreatedAtUtc = DateTime.UtcNow;
-            book.CreatedBy = currentUser;
-            book.UpdatedAtUtc = DateTime.UtcNow;
-            book.UpdatedBy = currentUser;
-        }
-        else if (state == EntityState.Modified)
-        {
-            book.UpdatedAtUtc = DateTime.UtcNow;
-            book.UpdatedBy = currentUser;
-        }
-    }
-
-    private void ApplyAuthorAudit(Author author, EntityState state, string currentUser)
-    {
-        if (state == EntityState.Added)
-        {
-            author.CreatedAtUtc = DateTime.UtcNow;
-            author.CreatedBy = currentUser;
-            author.UpdatedAtUtc = DateTime.UtcNow;
-            author.UpdatedBy = currentUser;
-        }
-        else if (state == EntityState.Modified)
-        {
-            author.UpdatedAtUtc = DateTime.UtcNow;
-            author.UpdatedBy = currentUser;
-        }
-    }
-
-    private void ApplyCategoryAudit(Category category, EntityState state, string currentUser)
-    {
-        if (state == EntityState.Added)
-        {
-            category.CreatedAtUtc = DateTime.UtcNow;
-            category.CreatedBy = currentUser;
-            category.UpdatedAtUtc = DateTime.UtcNow;
-            category.UpdatedBy = currentUser;
-        }
-        else if (state == EntityState.Modified)
-        {
-            category.UpdatedAtUtc = DateTime.UtcNow;
-            category.UpdatedBy = currentUser;
-        }
-    }
-
-    private void ApplyUserAudit(User user, EntityState state)
-    {
-        if (state == EntityState.Added)
-        {
-            user.CreatedAtUtc = DateTime.UtcNow;
-            user.UpdatedAtUtc = DateTime.UtcNow;
-        }
-        else if (state == EntityState.Modified)
-        {
-            user.UpdatedAtUtc = DateTime.UtcNow;
+            
+            // Handle entities implementing ITimestampedEntity (join tables)
+            else if (entry.Entity is ITimestampedEntity timestampedEntity && entry.State == EntityState.Added )
+            {
+                timestampedEntity.CreatedAtUtc = currentTime;
+            }
+            
+            // Handle User entity separately (doesn't implement IAuditable)
+            else if (entry.Entity is User user)
+            {
+                if (entry.State == EntityState.Added)
+                {
+                    user.CreatedAtUtc = currentTime;
+                    user.UpdatedAtUtc = currentTime;
+                } 
+                else if (entry.State == EntityState.Modified)
+                {
+                    user.UpdatedAtUtc = currentTime;
+                    entry.Property(nameof(user.CreatedAtUtc)).IsModified = false;
+                }
+            }
         }
     }
 
