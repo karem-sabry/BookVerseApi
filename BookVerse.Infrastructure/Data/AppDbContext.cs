@@ -24,6 +24,9 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<Category> Categories { get; set; }
     public DbSet<BookAuthor> BookAuthors { get; set; }
     public DbSet<BookCategory> BookCategories { get; set; }
+    public DbSet<Order> Orders { get; set; }
+    public DbSet<OrderItem> OrderItems { get; set; }
+    
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -31,6 +34,7 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         ConfigureUserEntity(modelBuilder);
         ConfigureBookAuthorRelationship(modelBuilder);
         ConfigureBookCategoryRelationship(modelBuilder);
+        ConfigureOrderRelationships(modelBuilder);
         SeedData(modelBuilder);
     }
 
@@ -82,6 +86,30 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
                 .HasMaxLength(100);
             entity.Property(u => u.RefreshToken)
                 .HasMaxLength(500);
+        });
+    }
+
+    public static void ConfigureOrderRelationships(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Order>(entity =>
+        {
+            entity.HasOne(o => o.User)
+                .WithMany()
+                .HasForeignKey(o => o.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasMany(o => o.OrderItems)
+                .WithOne(oi => oi.Order)
+                .HasForeignKey(oi => oi.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<OrderItem>(entity =>
+        {
+            entity.HasOne(oi => oi.Book)
+                .WithMany()
+                .HasForeignKey(oi => oi.BookId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
     private static void SeedData(ModelBuilder modelBuilder)

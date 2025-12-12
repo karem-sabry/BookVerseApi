@@ -221,6 +221,7 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
 
 // Repositories
 builder.Services.AddScoped<IUserRepository, UserRepository>();
@@ -296,7 +297,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(options =>
     {
         options.SwaggerEndpoint("/swagger/v1/swagger.json", "BookVerse API v1");
-        options.RoutePrefix = string.Empty; // Swagger at root
+        options.RoutePrefix = "swagger";
     });
     app.UseCors("DevelopmentPolicy");
     app.UseDeveloperExceptionPage();

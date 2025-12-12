@@ -21,7 +21,7 @@ public class AuthorRepository : GenericRepository<Author>, IAuthorRepository
 
     public async Task<Author?> GetByNameAsync(string firstName, string lastName)
     {
-        return await _dbSet
+        return await _dbSet.AsNoTracking()
             .Include(a => a.BookAuthors)
             .ThenInclude(ba => ba.Book)
             .FirstOrDefaultAsync(a => a.FirstName == firstName && a.LastName == lastName);

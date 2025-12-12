@@ -13,6 +13,7 @@ public class UnitOfWork : IUnitOfWork
     private IAuthorRepository? _authorRepository;
     private ICategoryRepository? _categoryRepository;
     private IUserRepository? _userRepository;
+    private IOrderRepository? _orderRepository;
 
     public UnitOfWork(AppDbContext context)
     {
@@ -27,6 +28,8 @@ public class UnitOfWork : IUnitOfWork
 
     public IUserRepository Users => _userRepository ??= new UserRepository(_context);
 
+    public IOrderRepository Orders => _orderRepository ?? new OrderRepository(_context);
+    
     public async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
     {
         return await _context.SaveChangesAsync(cancellationToken);

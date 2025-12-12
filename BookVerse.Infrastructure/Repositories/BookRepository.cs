@@ -14,7 +14,7 @@ public class BookRepository : GenericRepository<Book>, IBookRepository
 
     public override async Task<IEnumerable<Book>> GetAllAsync()
     {
-        return await _dbSet
+        return await _dbSet.AsNoTracking()
             .Include(b => b.BookAuthors).ThenInclude(ba => ba.Author)
             .Include(b => b.BookCategories).ThenInclude(bc => bc.Category)
             .ToListAsync();

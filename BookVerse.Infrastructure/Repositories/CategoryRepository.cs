@@ -16,7 +16,7 @@ public class CategoryRepository : GenericRepository<Category>, ICategoryReposito
 
     public async Task<Category?> GetByIdAsync(int id)
     {
-        return await _dbSet
+        return await _dbSet.AsNoTracking()
             .Include(c => c.BookCategories)
             .ThenInclude(bc => bc.Book)
             .FirstOrDefaultAsync(c => c.Id == id);
