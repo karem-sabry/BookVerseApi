@@ -1,4 +1,5 @@
 ﻿using System.Security.Claims;
+using Asp.Versioning;
 using BookVerse.Application.Dtos.Order;
 using BookVerse.Application.Dtos.User;
 using BookVerse.Application.Interfaces;
@@ -9,7 +10,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace BookVerse.Api.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
+[Route("api/v{version:apiVersion}/[controller]")]
+[ApiVersion("1.0")]
 [Authorize]
 public class OrderController : ControllerBase
 {

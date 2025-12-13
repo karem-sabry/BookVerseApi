@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Asp.Versioning;
 using BookVerse.Application.Dtos.User;
 using BookVerse.Application.Interfaces;
 using BookVerse.Core.Constants;
@@ -7,8 +8,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace BookVerse.Api.Controllers;
 
-[Route("api/[controller]")]
 [ApiController]
+[Route("api/v{version:apiVersion}/[controller]")]
+[ApiVersion("1.0")]
 [Authorize(Roles = IdentityRoleConstants.Admin)]
 public class AdminController : ControllerBase
 {

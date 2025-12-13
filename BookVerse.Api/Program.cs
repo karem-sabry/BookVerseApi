@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text;
+using Asp.Versioning;
 using BookVerse.Application.Interfaces;
 using BookVerse.Core.Constants;
 using BookVerse.Core.Entities;
@@ -44,6 +45,19 @@ builder.Services.AddControllers().AddJsonOptions(options =>
         System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
 }).AddNewtonsoftJson();
 
+builder.Services.AddApiVersioning(options =>
+{
+    options.DefaultApiVersion = new ApiVersion(1, 0);
+    options.AssumeDefaultVersionWhenUnspecified = true;
+    options.ReportApiVersions = true;
+    options.ApiVersionReader = ApiVersionReader.Combine(new UrlSegmentApiVersionReader(),
+        new HeaderApiVersionReader("X-Api-Version")
+    );
+}).AddApiExplorer(options =>
+{
+    options.GroupNameFormat = "'v'VVV";
+    options.SubstituteApiVersionInUrl = true;
+});
 // ====================================
 // IDENTITY CONFIGURATION
 // ====================================
@@ -156,11 +170,12 @@ builder.Services.AddEndpointsApiExplorer();
 
 builder.Services.AddSwaggerGen(options =>
 {
+    // API Info
     options.SwaggerDoc("v1", new OpenApiInfo
     {
         Title = "BookVerse API",
         Version = "v1",
-        Description = "A comprehensive bookstore API with authentication and authorization",
+        Description = "A comprehensive bookstore API - Version 1",
         Contact = new OpenApiContact
         {
             Name = "BookVerse Support",
@@ -168,6 +183,7 @@ builder.Services.AddSwaggerGen(options =>
         }
     });
 
+    // JWT Authentication
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         Name = "Authorization",
@@ -175,8 +191,9 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = "Bearer",
         BearerFormat = "JWT",
         In = ParameterLocation.Header,
-        Description = "Enter 'Bearer' [space] and then your JWT token. Example: Bearer eyJhbGc..."
+        Description = "Enter 'Bearer' [space] and then your JWT token."
     });
+
     options.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -297,7 +314,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(options =>
     {
         options.SwaggerEndpoint("/swagger/v1/swagger.json", "BookVerse API v1");
-        options.RoutePrefix = "swagger";
+        options.RoutePrefix = string.Empty;
     });
     app.UseCors("DevelopmentPolicy");
     app.UseDeveloperExceptionPage();

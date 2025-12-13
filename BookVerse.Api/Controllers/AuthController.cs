@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using Asp.Versioning;
 using BookVerse.Application.Dtos.User;
 using BookVerse.Application.Interfaces;
 using BookVerse.Core.Constants;
@@ -11,8 +12,9 @@ using ResetPasswordRequest = Microsoft.AspNetCore.Identity.Data.ResetPasswordReq
 
 namespace BookVerse.Api.Controllers;
 
-[Route("api/[controller]")]
 [ApiController]
+[Route("api/v{version:apiVersion}/[controller]")]
+[ApiVersion("1.0")]
 public class AuthController : ControllerBase
 {
     private readonly IAccountService _accountService;
