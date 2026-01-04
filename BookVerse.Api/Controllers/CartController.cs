@@ -42,7 +42,7 @@ public class CartController:ControllerBase
             });
         }
 
-        var cart = await _cartService.GetUserCartAsync(userId);
+        var cart = await _cartService.GetCartByUserIdAsync(userId);
         if (cart == null)
         {
             return NotFound(new BasicResponse

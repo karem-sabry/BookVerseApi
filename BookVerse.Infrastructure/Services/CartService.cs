@@ -22,7 +22,7 @@ public class CartService : ICartService
         _logger = logger;
         _dateTimeProvider = dateTimeProvider;
     }
-    public async Task<CartDto?> GetUserCartAsync(Guid userId)
+    public async Task<CartDto?> GetCartByUserIdAsync(Guid userId)
     {
         try
         {
