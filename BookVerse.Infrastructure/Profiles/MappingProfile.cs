@@ -20,6 +20,7 @@ public class MappingProfile : Profile
         ConfigureCartMappings();
         ConfigureOrderMappings();
     }
+
     private void ConfigureBookMappings()
     {
         // Book -> BookReadDto (includes related data)
@@ -45,7 +46,8 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.CreatedAtUtc, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedBy, opt => opt.Ignore());
     }
-     private void ConfigureAuthorMappings()
+
+    private void ConfigureAuthorMappings()
     {
         // Author -> AuthorBriefDto (minimal data)
         CreateMap<Author, AuthorBriefDto>();
@@ -94,12 +96,13 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.CreatedAtUtc, opt => opt.Ignore())
             .ForMember(dest => dest.CreatedBy, opt => opt.Ignore());
     }
-    
+
     private void ConfigureUserMappings()
     {
         // User -> UserProfileDto
         CreateMap<User, UserProfileDto>();
     }
+
     private void ConfigureCartMappings()
     {
         CreateMap<Cart, CartDto>();
@@ -108,6 +111,7 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.BookTitle, opt => opt.MapFrom(src => src.Book.Title))
             .ForMember(dest => dest.Price, opt => opt.MapFrom(src => src.PriceAtAdd));
     }
+
     private void ConfigureOrderMappings()
     {
         CreateMap<Order, OrderReadDto>()

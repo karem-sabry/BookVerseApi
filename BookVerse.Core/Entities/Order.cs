@@ -6,15 +6,12 @@ namespace BookVerse.Core.Entities;
 
 public class Order : IAuditable, IEntity
 {
-    [Key]
-    public int Id { get; set; }
+    [Key] public int Id { get; set; }
 
     public Guid UserId { get; set; }
     public User User { get; set; } = null!;
 
-    [Required]
-    [MaxLength(50)]
-    public string OrderNumber { get; set; } = string.Empty;
+    [Required] [MaxLength(50)] public string OrderNumber { get; set; } = string.Empty;
 
     public DateTime OrderDate { get; set; }
 
@@ -22,26 +19,20 @@ public class Order : IAuditable, IEntity
 
     public decimal TotalAmount { get; set; }
 
-    [Required]
-    [MaxLength(500)]
-    public string ShippingAddress { get; set; } = string.Empty;
+    [Required] [MaxLength(500)] public string ShippingAddress { get; set; } = string.Empty;
 
-    [MaxLength(50)]
-    public string? PaymentMethod { get; set; }
+    [MaxLength(50)] public string? PaymentMethod { get; set; }
 
     public PaymentStatus PaymentStatus { get; set; } = PaymentStatus.Pending;
 
-    [MaxLength(1000)]
-    public string? Notes { get; set; }
+    [MaxLength(1000)] public string? Notes { get; set; }
 
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? UpdatedAtUtc { get; set; }
 
-    [MaxLength(100)]
-    public string? CreatedBy { get; set; }
+    [MaxLength(100)] public string? CreatedBy { get; set; }
 
-    [MaxLength(100)]
-    public string? UpdatedBy { get; set; }
+    [MaxLength(100)] public string? UpdatedBy { get; set; }
 
     public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
 }

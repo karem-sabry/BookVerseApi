@@ -46,6 +46,7 @@ public class AdminController : ControllerBase
                 Message = ErrorMessages.InvalidId
             });
         }
+
         var user = await _adminService.GetUserByIdAsync(userId);
         if (user == null)
             return NotFound(new BasicResponse
@@ -85,10 +86,10 @@ public class AdminController : ControllerBase
         }
 
         var response = await _adminService.MakeUserAdminAsync(userId, currentAdminEmail);
-        
+
         if (response.Succeeded)
             return Ok(response);
-        
+
         return BadRequest(response);
     }
 
@@ -101,17 +102,17 @@ public class AdminController : ControllerBase
     public async Task<IActionResult> RemoveAdminRole(Guid userId)
     {
         if (userId == Guid.Empty)
-            return BadRequest(new BasicResponse 
-            { 
-                Succeeded = false, 
-                Message = ErrorMessages.InvalidId 
+            return BadRequest(new BasicResponse
+            {
+                Succeeded = false,
+                Message = ErrorMessages.InvalidId
             });
         var currentAdminIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        
-        
-        
-        if (string.IsNullOrWhiteSpace(currentAdminIdClaim) || !Guid.TryParse(currentAdminIdClaim, out var currentAdminId))
-            return Unauthorized(new BasicResponse { Succeeded = false, Message = ErrorMessages.InvalidUserContext});
+
+
+        if (string.IsNullOrWhiteSpace(currentAdminIdClaim) ||
+            !Guid.TryParse(currentAdminIdClaim, out var currentAdminId))
+            return Unauthorized(new BasicResponse { Succeeded = false, Message = ErrorMessages.InvalidUserContext });
 
         var response = await _adminService.RemoveAdminRoleAsync(userId, currentAdminId);
 
@@ -130,20 +131,20 @@ public class AdminController : ControllerBase
     public async Task<ActionResult> DeleteUser(Guid userId)
     {
         if (userId == Guid.Empty)
-            return BadRequest(new BasicResponse 
-            { 
-                Succeeded = false, 
-                Message = ErrorMessages.InvalidId 
+            return BadRequest(new BasicResponse
+            {
+                Succeeded = false,
+                Message = ErrorMessages.InvalidId
             });
-        
+
         var currentAdminEmail = User.FindFirstValue(ClaimTypes.Email);
         if (string.IsNullOrWhiteSpace(currentAdminEmail))
-            return Unauthorized(new BasicResponse 
-            { 
-                Succeeded = false, 
-                Message = ErrorMessages.InvalidUserContext 
+            return Unauthorized(new BasicResponse
+            {
+                Succeeded = false,
+                Message = ErrorMessages.InvalidUserContext
             });
-        
+
         var response = await _adminService.DeleteUserAsync(userId, currentAdminEmail);
 
         if (response.Succeeded)

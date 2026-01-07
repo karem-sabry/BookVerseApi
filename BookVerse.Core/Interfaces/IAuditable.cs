@@ -6,6 +6,4 @@ public interface IAuditable
     DateTime? UpdatedAtUtc { get; set; }
     string? CreatedBy { get; set; }
     string? UpdatedBy { get; set; }
-    
-    
 }

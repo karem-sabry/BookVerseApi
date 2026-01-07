@@ -14,12 +14,12 @@ namespace BookVerse.Api.Controllers;
 [ApiVersion("1.0")]
 [Authorize]
 [Produces("application/json")]
-public class CartController:ControllerBase
+public class CartController : ControllerBase
 {
     private readonly ICartService _cartService;
     private readonly ILogger<CartController> _logger;
 
-    public CartController(ICartService cartService,ILogger<CartController> logger)
+    public CartController(ICartService cartService, ILogger<CartController> logger)
     {
         _cartService = cartService;
         _logger = logger;
@@ -54,7 +54,8 @@ public class CartController:ControllerBase
 
         return Ok(cart);
     }
-     [HttpPost("items")]
+
+    [HttpPost("items")]
     [ProducesResponseType(typeof(CartDto), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BasicResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
@@ -74,7 +75,7 @@ public class CartController:ControllerBase
         }
 
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        
+
         if (string.IsNullOrWhiteSpace(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
         {
             return Unauthorized(new BasicResponse
@@ -137,7 +138,7 @@ public class CartController:ControllerBase
         }
 
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        
+
         if (string.IsNullOrWhiteSpace(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
         {
             return Unauthorized(new BasicResponse
@@ -150,7 +151,7 @@ public class CartController:ControllerBase
         try
         {
             var cart = await _cartService.UpdateCartItemAsync(userId, cartItemId, cartItemUpdate);
-            
+
             if (cart == null)
             {
                 return NotFound(new BasicResponse
@@ -197,7 +198,7 @@ public class CartController:ControllerBase
         }
 
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        
+
         if (string.IsNullOrWhiteSpace(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
         {
             return Unauthorized(new BasicResponse
@@ -208,7 +209,7 @@ public class CartController:ControllerBase
         }
 
         var response = await _cartService.RemoveCartItemAsync(userId, cartItemId);
-        
+
         if (response.Succeeded)
         {
             return Ok(response);
@@ -223,7 +224,7 @@ public class CartController:ControllerBase
     public async Task<IActionResult> ClearCart()
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        
+
         if (string.IsNullOrWhiteSpace(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
         {
             return Unauthorized(new BasicResponse
@@ -237,10 +238,3 @@ public class CartController:ControllerBase
         return Ok(response);
     }
 }
-
-
-
-
-
-
-

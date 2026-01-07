@@ -4,7 +4,7 @@ namespace BookVerse.Core.Models;
 
 public class QueryParameters
 {
-    private const int MaxPageSize =ApplicationConstants.MaxPageSize;
+    private const int MaxPageSize = ApplicationConstants.MaxPageSize;
     private int _pageSize = ApplicationConstants.DefaultPageSize;
     public int PageNumber { get; set; } = 1;
 

@@ -5,8 +5,7 @@ namespace BookVerse.Core.Entities;
 
 public class OrderItem : IAuditable, IEntity
 {
-    [Key]
-    public int Id { get; set; }
+    [Key] public int Id { get; set; }
 
     public int OrderId { get; set; }
     public Order Order { get; set; } = null!;
@@ -14,8 +13,7 @@ public class OrderItem : IAuditable, IEntity
     public int BookId { get; set; }
     public Book Book { get; set; } = null!;
 
-    [Range(1, 100)]
-    public int Quantity { get; set; }
+    [Range(1, 100)] public int Quantity { get; set; }
 
     public decimal PriceAtOrder { get; set; }
 
@@ -24,9 +22,7 @@ public class OrderItem : IAuditable, IEntity
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? UpdatedAtUtc { get; set; }
 
-    [MaxLength(100)]
-    public string? CreatedBy { get; set; }
+    [MaxLength(100)] public string? CreatedBy { get; set; }
 
-    [MaxLength(100)]
-    public string? UpdatedBy { get; set; }
+    [MaxLength(100)] public string? UpdatedBy { get; set; }
 }

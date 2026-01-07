@@ -34,6 +34,7 @@ public class AuthController : ControllerBase
         {
             return BadRequest(ModelState);
         }
+
         var response = await _accountService.RegisterAsync(registerRequest);
 
         if (response.Succeeded)
@@ -61,7 +62,8 @@ public class AuthController : ControllerBase
                 Succeeded = false,
                 Errors = errors
             });
-        }        
+        }
+
         var response = await _accountService.LoginAsync(loginRequest);
         if (response.Succeeded)
         {
@@ -82,13 +84,14 @@ public class AuthController : ControllerBase
         {
             var errorMessage = string.Join("; ", ModelState.Values.SelectMany(v => v.Errors)
                 .Select(e => e.ErrorMessage));
-            
+
             return BadRequest(new LoginResponse
             {
                 Succeeded = false,
-                 Message = errorMessage
+                Message = errorMessage
             });
         }
+
         var response = await _accountService.RefreshTokenAsync(refreshTokenRequest);
         if (!response.Succeeded)
         {
@@ -134,19 +137,19 @@ public class AuthController : ControllerBase
         var email = User.FindFirstValue(ClaimTypes.Email);
         if (string.IsNullOrWhiteSpace(email))
         {
-            return Unauthorized(new BasicResponse 
-            { 
-                Succeeded = false, 
-                Message = ErrorMessages.InvalidUserContext 
+            return Unauthorized(new BasicResponse
+            {
+                Succeeded = false,
+                Message = ErrorMessages.InvalidUserContext
             });
         }
 
         var user = await _accountService.GetCurrentUserAsync(email);
         if (user == null)
-            return NotFound(new BasicResponse 
-            { 
-                Succeeded = false, 
-                Message = ErrorMessages.UserNotFound 
+            return NotFound(new BasicResponse
+            {
+                Succeeded = false,
+                Message = ErrorMessages.UserNotFound
             });
         return Ok(user);
     }
@@ -168,6 +171,7 @@ public class AuthController : ControllerBase
                 Message = errorMessage
             });
         }
+
         var response = await _accountService.ForgotPasswordAsync(request);
         return Ok(response);
     }
@@ -190,6 +194,7 @@ public class AuthController : ControllerBase
                 Message = errorMessage
             });
         }
+
         var response = await _accountService.ResetPasswordAsync(request);
         if (response.Succeeded)
         {

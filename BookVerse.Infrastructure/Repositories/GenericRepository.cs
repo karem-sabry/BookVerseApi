@@ -46,12 +46,11 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
         }
 
         var items = await query
-            .Skip((parameters.PageNumber-1) * parameters.PageSize)
+            .Skip((parameters.PageNumber - 1) * parameters.PageSize)
             .Take(parameters.PageSize)
             .ToListAsync();
 
         return new Core.Models.PagedResult<T>(items, totalCount, parameters.PageNumber, parameters.PageSize);
-
     }
 
     public virtual async Task<IEnumerable<T>> FindAsync(Expression<Func<T, bool>> predicate)
@@ -89,20 +88,12 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
 
     protected virtual IQueryable<T> ApplySearch(IQueryable<T> query, string searchTerm)
     {
-        // TO be overriden in class to implement entity-specific Search
         return query;
     }
 
     protected virtual IQueryable<T> ApplySorting(IQueryable<T> query, string sortBy, bool descending)
     {
-        try
-        {
-            var orderBy = descending ? $"{sortBy} descending" : sortBy;
-            return query.OrderBy(orderBy);
-        }
-        catch
-        {
-            return query;
-        }
+        var orderBy = descending ? $"{sortBy} descending" : sortBy;
+        return query.OrderBy(orderBy);
     }
 }

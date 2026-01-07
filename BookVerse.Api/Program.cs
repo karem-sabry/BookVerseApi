@@ -27,15 +27,15 @@ builder.Configuration.AddUserSecrets<Program>();
 // DATABASE
 // ====================================
 
-builder.Services.AddDbContext<AppDbContext>((serviceProvider,options) =>
+builder.Services.AddDbContext<AppDbContext>((serviceProvider, options) =>
     {
         var dateTimeProvider = serviceProvider.GetRequiredService<IDateTimeProvider>();
         var httpContextAccessor = serviceProvider.GetRequiredService<IHttpContextAccessor>();
-        
+
         options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"),
             sqlOptions => sqlOptions.MigrationsAssembly("BookVerse.Infrastructure"));
     }
-    );
+);
 
 // ====================================
 // HTTP CONTEXT & CONTROLLERS
@@ -43,7 +43,7 @@ builder.Services.AddDbContext<AppDbContext>((serviceProvider,options) =>
 
 
 builder.Services.AddHttpContextAccessor();
-
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddControllers().AddJsonOptions(options =>
 {
     options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
@@ -107,11 +107,11 @@ builder.Services.AddAuthentication(opt =>
 }).AddJwtBearer(options =>
 {
     var jwtOptions = builder.Configuration.GetSection(JwtOptions.JwtOptionsKey).Get<JwtOptions>();
-    
+
     if (jwtOptions == null)
         throw new InvalidOperationException(
             $"JWT configuration is missing. Please configure '{JwtOptions.JwtOptionsKey}' section.");
-    
+
     if (string.IsNullOrEmpty(jwtOptions.Secret) || jwtOptions.Secret.Length < 32)
     {
         throw new ArgumentException("JWT Secret must be at least 32 characters long.");
@@ -150,7 +150,7 @@ builder.Services.AddAuthentication(opt =>
         OnChallenge = context =>
         {
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-            logger.LogWarning("Authentication challenge: {Error} - {ErrorDescription}", 
+            logger.LogWarning("Authentication challenge: {Error} - {ErrorDescription}",
                 context.Error, context.ErrorDescription);
             return Task.CompletedTask;
         }
@@ -301,7 +301,7 @@ using (var scope = app.Services.CreateScope())
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole<Guid>>>();
         var adminOptions = services.GetRequiredService<IOptions<AdminUserOptions>>();
         var dateTimeProvider = services.GetRequiredService<IDateTimeProvider>();
-        await DbInitializer.SeedDataAsync(context, userManager, roleManager, adminOptions, logger,dateTimeProvider);
+        await DbInitializer.SeedDataAsync(context, userManager, roleManager, adminOptions, logger, dateTimeProvider);
         logger.LogInformation("Database seeding completed successfully");
     }
     catch (Exception ex)
@@ -332,6 +332,8 @@ else
     app.UseHsts();
 }
 
+app.UseExceptionHandler(opt => { });
+
 //Security Headers middleware
 app.Use(async (context, next) =>
 {
@@ -344,8 +346,6 @@ app.Use(async (context, next) =>
     await next();
 });
 
-
-app.UseMiddleware<ExceptionMiddleware>();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();

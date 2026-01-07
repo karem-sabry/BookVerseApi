@@ -14,7 +14,7 @@ public class BookReadDto
     public int QuantityInStock { get; set; }
     public List<AuthorBriefDto> Authors { get; set; } = new();
     public List<CategoryBriefDto> Categories { get; set; } = new();
-    
+
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? UpdatedAtUtc { get; set; }
     public string? CreatedBy { get; set; }

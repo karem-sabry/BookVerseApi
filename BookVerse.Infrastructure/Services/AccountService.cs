@@ -23,7 +23,7 @@ public class AccountService : IAccountService
 
     public AccountService(IAuthTokenProcessor authTokenProcessor, UserManager<User> userManager,
         RoleManager<IdentityRole<Guid>> roleManager, IUserRepository userRepository, IEmailService emailService,
-        ILogger<AccountService> logger,IDateTimeProvider dateTimeProvider)
+        ILogger<AccountService> logger, IDateTimeProvider dateTimeProvider)
     {
         _authTokenProcessor = authTokenProcessor;
         _userManager = userManager;
@@ -36,304 +36,220 @@ public class AccountService : IAccountService
 
     public async Task<RegisterResponse> RegisterAsync(RegisterRequest registerRequest)
     {
-        try
+        var userExists = await _userManager.FindByEmailAsync(registerRequest.Email) != null;
+
+        if (userExists)
         {
-            var userExists = await _userManager.FindByEmailAsync(registerRequest.Email) != null;
+            _logger.LogWarning("Registration attempt with existing email: {Email}", registerRequest.Email);
 
-            if (userExists)
-            {
-                _logger.LogWarning("Registration attempt with existing email: {Email}", registerRequest.Email);
-
-                return new RegisterResponse
-                {
-                    Succeeded = false,
-                    Message = ErrorMessages.UserAlreadyExists,
-                    Errors = new[] { ErrorMessages.UserAlreadyExists }
-                };
-            }
-
-            if (registerRequest.Role != Role.User)
-            {
-                _logger.LogWarning("Attempt to register with invalid role: {Role}", registerRequest.Role);
-                return new RegisterResponse
-                {
-                    Succeeded = false,
-                    Message = ErrorMessages.InvalidRole,
-                    Errors = new[] { ErrorMessages.CannotRegisterAsAdmin }
-                };
-            }
-
-            var identityRoleName = GetIdentityRoleName(registerRequest.Role);
-
-            var roleExists = await _roleManager.RoleExistsAsync(identityRoleName);
-
-            if (!roleExists)
-            {
-                _logger.LogError("Invalid role specified during registration: {Role}", registerRequest.Role);
-
-                return new RegisterResponse
-                {
-                    Succeeded = false,
-                    Message = ErrorMessages.InvalidRole,
-                    Errors = new[] {ErrorMessages.RoleDoesNotExist}
-                };
-            }
-
-
-            var user = User.Create(registerRequest.Email, registerRequest.FirstName, registerRequest.LastName,_dateTimeProvider.UtcNow);
-
-            var result = await _userManager.CreateAsync(user, registerRequest.Password);
-
-            if (!result.Succeeded)
-            {
-                _logger.LogWarning("User registration failed for {Email}: {Errors}",
-                    registerRequest.Email,
-                    string.Join(", ", result.Errors.Select(e => e.Description)));
-
-                return new RegisterResponse
-                {
-                    Succeeded = false,
-                    Message = ErrorMessages.RegistrationFailed,
-                    Errors = result.Errors.Select(x => x.Description)
-                };
-            }
-
-            await _userManager.AddToRoleAsync(user, identityRoleName);
-            
-            _logger.LogInformation("User registered successfully: {Email} with role {Role}",
-                user.Email, identityRoleName);
-
-            return new RegisterResponse
-            {
-                Succeeded = true,
-                Message = SuccessMessages.RegistrationSuccessful,
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during user registration for {Email}", registerRequest.Email);
             return new RegisterResponse
             {
                 Succeeded = false,
-                Message = ErrorMessages.InternalServerError,
-                Errors = new[] {ErrorMessages.RegistrationFailed }
+                Message = ErrorMessages.UserAlreadyExists,
+                Errors = new[] { ErrorMessages.UserAlreadyExists }
             };
         }
+
+        if (registerRequest.Role != Role.User)
+        {
+            _logger.LogWarning("Attempt to register with invalid role: {Role}", registerRequest.Role);
+            return new RegisterResponse
+            {
+                Succeeded = false,
+                Message = ErrorMessages.InvalidRole,
+                Errors = new[] { ErrorMessages.CannotRegisterAsAdmin }
+            };
+        }
+
+        var identityRoleName = GetIdentityRoleName(registerRequest.Role);
+
+        var roleExists = await _roleManager.RoleExistsAsync(identityRoleName);
+
+        if (!roleExists)
+        {
+            _logger.LogError("Invalid role specified during registration: {Role}", registerRequest.Role);
+
+            return new RegisterResponse
+            {
+                Succeeded = false,
+                Message = ErrorMessages.InvalidRole,
+                Errors = new[] { ErrorMessages.RoleDoesNotExist }
+            };
+        }
+
+
+        var user = User.Create(registerRequest.Email, registerRequest.FirstName, registerRequest.LastName,
+            _dateTimeProvider.UtcNow);
+
+        var result = await _userManager.CreateAsync(user, registerRequest.Password);
+
+        if (!result.Succeeded)
+        {
+            _logger.LogWarning("User registration failed for {Email}: {Errors}",
+                registerRequest.Email,
+                string.Join(", ", result.Errors.Select(e => e.Description)));
+
+            return new RegisterResponse
+            {
+                Succeeded = false,
+                Message = ErrorMessages.RegistrationFailed,
+                Errors = result.Errors.Select(x => x.Description)
+            };
+        }
+
+        await _userManager.AddToRoleAsync(user, identityRoleName);
+
+        _logger.LogInformation("User registered successfully: {Email} with role {Role}",
+            user.Email, identityRoleName);
+
+        return new RegisterResponse
+        {
+            Succeeded = true,
+            Message = SuccessMessages.RegistrationSuccessful,
+        };
     }
 
     public async Task<LoginResponse> LoginAsync(LoginRequest loginRequest)
     {
-        try
+        var user = await _userManager.FindByEmailAsync(loginRequest.Email);
+        if (user == null || !await _userManager.CheckPasswordAsync(user, loginRequest.Password))
         {
-            var user = await _userManager.FindByEmailAsync(loginRequest.Email);
-            if (user == null || !await _userManager.CheckPasswordAsync(user, loginRequest.Password))
-            {
-                _logger.LogWarning("Failed login attempt for email: {Email}", loginRequest.Email);
+            _logger.LogWarning("Failed login attempt for email: {Email}", loginRequest.Email);
 
-                return new LoginResponse
-                {
-                    Succeeded = false,
-                    Message = ErrorMessages.InvalidCredentials,
-                };
-            }
-            
-            
-            
-            var roles = await _userManager.GetRolesAsync(user);
-            var (jwtToken, expirationDateInUtc) = _authTokenProcessor.GenerateJwtToken(user, roles);
-
-            var refreshTokenValue = _authTokenProcessor.GenerateRefreshToken();
-
-            var refreshTokenExpirationDateInUtc = _dateTimeProvider.UtcNow.AddDays(ApplicationConstants.RefreshTokenExpirationDays);
-            
-            user.RefreshToken = refreshTokenValue;
-            user.RefreshTokenExpiresAtUtc = refreshTokenExpirationDateInUtc;
-
-            await _userManager.UpdateAsync(user);
-            _logger.LogInformation("User logged in successfully: {Email}", user.Email);
-
-            return new LoginResponse
-            {
-                Succeeded = true,
-                Message = SuccessMessages.LoginSuccessful,
-                AccessToken = jwtToken,
-                ExpiresAtUtc = expirationDateInUtc,
-                RefreshToken = refreshTokenValue
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during login for {Email}", loginRequest.Email);
             return new LoginResponse
             {
                 Succeeded = false,
-                Message = ErrorMessages.InternalServerError
+                Message = ErrorMessages.InvalidCredentials,
             };
         }
+
+
+        var roles = await _userManager.GetRolesAsync(user);
+        var (jwtToken, expirationDateInUtc) = _authTokenProcessor.GenerateJwtToken(user, roles);
+
+        var refreshTokenValue = _authTokenProcessor.GenerateRefreshToken();
+
+        var refreshTokenExpirationDateInUtc =
+            _dateTimeProvider.UtcNow.AddDays(ApplicationConstants.RefreshTokenExpirationDays);
+
+        user.RefreshToken = refreshTokenValue;
+        user.RefreshTokenExpiresAtUtc = refreshTokenExpirationDateInUtc;
+
+        await _userManager.UpdateAsync(user);
+        _logger.LogInformation("User logged in successfully: {Email}", user.Email);
+
+        return new LoginResponse
+        {
+            Succeeded = true,
+            Message = SuccessMessages.LoginSuccessful,
+            AccessToken = jwtToken,
+            ExpiresAtUtc = expirationDateInUtc,
+            RefreshToken = refreshTokenValue
+        };
     }
 
     public async Task<BasicResponse> DeleteMyAccountAsync(string userEmail)
     {
-        try
+        var user = await _userManager.FindByEmailAsync(userEmail);
+
+        if (user == null)
         {
-            var user = await _userManager.FindByEmailAsync(userEmail);
+            _logger.LogWarning("Account deletion attempted for non-existent user: {Email}", userEmail);
 
-            if (user == null)
+            return new BasicResponse()
             {
-                _logger.LogWarning("Account deletion attempted for non-existent user: {Email}", userEmail);
-
-                return new BasicResponse()
-                {
-                    Succeeded = false,
-                    Message = ErrorMessages.UserNotFound
-                };
-            }
-
-            var result = await _userManager.DeleteAsync(user);
-            if (!result.Succeeded)
-            {
-                _logger.LogError("Failed to delete account for {Email}: {Errors}",
-                    userEmail,
-                    string.Join(", ", result.Errors.Select(e => e.Description)));
-
-                return new BasicResponse
-                {
-                    Succeeded = false,
-                    Message = ErrorMessages.OperationFailed
-                };
-            }
-
-            _logger.LogInformation("Account deleted successfully: {Email}", userEmail);
-
-            return new BasicResponse
-            {
-                Succeeded = true,
-                Message = SuccessMessages.AccountDeleted
+                Succeeded = false,
+                Message = ErrorMessages.UserNotFound
             };
         }
-        catch (Exception ex)
+
+        var result = await _userManager.DeleteAsync(user);
+        if (!result.Succeeded)
         {
-            _logger.LogError(ex, "Error deleting account for {Email}", userEmail);
+            _logger.LogError("Failed to delete account for {Email}: {Errors}",
+                userEmail,
+                string.Join(", ", result.Errors.Select(e => e.Description)));
+
             return new BasicResponse
             {
                 Succeeded = false,
-                Message = ErrorMessages.InternalServerError
+                Message = ErrorMessages.OperationFailed
             };
         }
+
+        _logger.LogInformation("Account deleted successfully: {Email}", userEmail);
+
+        return new BasicResponse
+        {
+            Succeeded = true,
+            Message = SuccessMessages.AccountDeleted
+        };
     }
 
     public async Task<RefreshTokenResponse> RefreshTokenAsync(RefreshTokenRequest refreshTokenRequest)
     {
-        try
+        if (string.IsNullOrWhiteSpace(refreshTokenRequest.RefreshToken))
         {
-            if (string.IsNullOrWhiteSpace(refreshTokenRequest.RefreshToken))
-            {
-                return new RefreshTokenResponse()
-                {
-                    Succeeded = false,
-                    Message = ErrorMessages.RefreshTokenMissing
-                };
-            }
-
-            var user = await _userRepository.GetUserByRefreshTokenAsync(refreshTokenRequest.RefreshToken);
-
-            if (user == null)
-            {
-                _logger.LogWarning("Invalid refresh token attempt");
-
-                return new RefreshTokenResponse
-                {
-                    Succeeded = false,
-                    Message = ErrorMessages.RefreshTokenInvalid
-                };
-            }
-
-            if (user.RefreshTokenExpiresAtUtc < _dateTimeProvider.UtcNow)
-            {
-                _logger.LogInformation("Expired refresh token used for user: {Email}", user.Email);
-
-                return new RefreshTokenResponse()
-                {
-                    Succeeded = false,
-                    Message = ErrorMessages.RefreshTokenExpired
-                };
-            }
-
-            var roles = await _userManager.GetRolesAsync(user);
-            var (jwtToken, expirationDateInUtc) = _authTokenProcessor.GenerateJwtToken(user, roles);
-            var refreshTokenValue = _authTokenProcessor.GenerateRefreshToken();
-            var refreshExpirationDateInUtc = _dateTimeProvider.UtcNow.AddDays(ApplicationConstants.RefreshTokenExpirationDays);
-            
-            user.RefreshToken = refreshTokenValue;
-            user.RefreshTokenExpiresAtUtc = refreshExpirationDateInUtc;
-            await _userManager.UpdateAsync(user);
-            
-            _logger.LogInformation("Token refreshed for user: {Email}", user.Email);
-
             return new RefreshTokenResponse()
             {
-                Succeeded = true,
-                Message = SuccessMessages.TokenRefreshed,
-                AccessToken = jwtToken,
-                ExpiresAtUtc = expirationDateInUtc,
-                RefreshToken = refreshTokenValue
+                Succeeded = false,
+                Message = ErrorMessages.RefreshTokenMissing
             };
         }
-        catch (Exception ex)
+
+        var user = await _userRepository.GetUserByRefreshTokenAsync(refreshTokenRequest.RefreshToken);
+
+        if (user == null)
         {
-            _logger.LogError(ex, "Error refreshing token");
+            _logger.LogWarning("Invalid refresh token attempt");
+
             return new RefreshTokenResponse
             {
                 Succeeded = false,
-                Message = ErrorMessages.InternalServerError
+                Message = ErrorMessages.RefreshTokenInvalid
             };
         }
+
+        if (user.RefreshTokenExpiresAtUtc < _dateTimeProvider.UtcNow)
+        {
+            _logger.LogInformation("Expired refresh token used for user: {Email}", user.Email);
+
+            return new RefreshTokenResponse()
+            {
+                Succeeded = false,
+                Message = ErrorMessages.RefreshTokenExpired
+            };
+        }
+
+        var roles = await _userManager.GetRolesAsync(user);
+        var (jwtToken, expirationDateInUtc) = _authTokenProcessor.GenerateJwtToken(user, roles);
+        var refreshTokenValue = _authTokenProcessor.GenerateRefreshToken();
+        var refreshExpirationDateInUtc =
+            _dateTimeProvider.UtcNow.AddDays(ApplicationConstants.RefreshTokenExpirationDays);
+
+        user.RefreshToken = refreshTokenValue;
+        user.RefreshTokenExpiresAtUtc = refreshExpirationDateInUtc;
+        await _userManager.UpdateAsync(user);
+
+        _logger.LogInformation("Token refreshed for user: {Email}", user.Email);
+
+        return new RefreshTokenResponse()
+        {
+            Succeeded = true,
+            Message = SuccessMessages.TokenRefreshed,
+            AccessToken = jwtToken,
+            ExpiresAtUtc = expirationDateInUtc,
+            RefreshToken = refreshTokenValue
+        };
     }
 
     public async Task<BasicResponse> ForgotPasswordAsync(ForgotPasswordRequest request)
     {
-        try
+        var user = await _userManager.FindByEmailAsync(request.Email);
+
+        if (user == null)
         {
-            var user = await _userManager.FindByEmailAsync(request.Email);
-
-            if (user == null)
-            {
-                _logger.LogInformation("Password reset requested for non-existent email: {Email}", request.Email);
-
-                return new BasicResponse
-                {
-                    Succeeded = true,
-                    Message = SuccessMessages.PasswordResetEmailSent
-                };
-            }
-
-            var token = await _userManager.GeneratePasswordResetTokenAsync(user);
-            
-            var emailBody = $"""
-                             Hello {user.FirstName},
-
-                             You requested to reset your password for BookVerse.Api.
-
-                             Please use the following token to reset your password:
-
-                             {token}
-
-                             This token will expire in {ApplicationConstants.PasswordResetTokenExpirationHours} hours.
-
-                             If you didn't request this password reset, please ignore this email and your password will remain unchanged.
-
-                             For security reasons, never share this token with anyone.
-
-                             Best regards,
-                             BookVerse.Api Support Team
-                             """;
-
-            await _emailService.SendEmailAsync(
-                user.Email!,
-                "BookVerse.Api Password Reset",
-                emailBody
-            );
-            _logger.LogInformation("Password reset email sent to: {Email}", user.Email);
+            _logger.LogInformation("Password reset requested for non-existent email: {Email}", request.Email);
 
             return new BasicResponse
             {
@@ -341,138 +257,130 @@ public class AccountService : IAccountService
                 Message = SuccessMessages.PasswordResetEmailSent
             };
         }
-        catch (Exception ex)
+
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+
+        var emailBody = $"""
+                         Hello {user.FirstName},
+
+                         You requested to reset your password for BookVerse.Api.
+
+                         Please use the following token to reset your password:
+
+                         {token}
+
+                         This token will expire in {ApplicationConstants.PasswordResetTokenExpirationHours} hours.
+
+                         If you didn't request this password reset, please ignore this email and your password will remain unchanged.
+
+                         For security reasons, never share this token with anyone.
+
+                         Best regards,
+                         BookVerse.Api Support Team
+                         """;
+
+        await _emailService.SendEmailAsync(
+            user.Email!,
+            "BookVerse.Api Password Reset",
+            emailBody
+        );
+        _logger.LogInformation("Password reset email sent to: {Email}", user.Email);
+
+        return new BasicResponse
         {
-            _logger.LogError(ex, "Error sending password reset email for {Email}", request.Email);
-            
-            return new BasicResponse
-            {
-                Succeeded = true,
-                Message = SuccessMessages.PasswordResetEmailSent
-            };
-        }
+            Succeeded = true,
+            Message = SuccessMessages.PasswordResetEmailSent
+        };
     }
 
     public async Task<BasicResponse> ResetPasswordAsync(ResetPasswordRequest request)
     {
-        try
+        var user = await _userManager.FindByEmailAsync(request.Email);
+
+        if (user == null)
         {
-            var user = await _userManager.FindByEmailAsync(request.Email);
-            
-            if (user == null)
-            {
-                _logger.LogWarning("Password reset attempted for non-existent email: {Email}", request.Email);
+            _logger.LogWarning("Password reset attempted for non-existent email: {Email}", request.Email);
 
-                return new BasicResponse
-                {
-                    Succeeded = false,
-                    Message = ErrorMessages.InvalidPasswordResetRequest
-                };
-            }
-
-            var result = await _userManager.ResetPasswordAsync(user, request.ResetCode, request.NewPassword);
-
-            if (!result.Succeeded)
-            {
-                _logger.LogWarning("Password reset failed for {Email}: {Errors}",
-                    request.Email,
-                    string.Join(", ", result.Errors.Select(e => e.Description)));
-                return new BasicResponse
-                {
-                    Succeeded = false,
-                    Message = string.Join(", ", result.Errors.Select(e => e.Description))
-                };
-            }
-
-            user.RefreshToken = null;
-            user.RefreshTokenExpiresAtUtc = null;
-            await _userManager.UpdateAsync(user);
-            
-            _logger.LogInformation("Password reset successfully for: {Email}", user.Email);
-
-            return new BasicResponse
-            {
-                Succeeded = true,
-                Message = SuccessMessages.PasswordResetSuccessful
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error resetting password for {Email}", request.Email);
             return new BasicResponse
             {
                 Succeeded = false,
-                Message = ErrorMessages.InternalServerError
+                Message = ErrorMessages.InvalidPasswordResetRequest
             };
         }
+
+        var result = await _userManager.ResetPasswordAsync(user, request.ResetCode, request.NewPassword);
+
+        if (!result.Succeeded)
+        {
+            _logger.LogWarning("Password reset failed for {Email}: {Errors}",
+                request.Email,
+                string.Join(", ", result.Errors.Select(e => e.Description)));
+            return new BasicResponse
+            {
+                Succeeded = false,
+                Message = string.Join(", ", result.Errors.Select(e => e.Description))
+            };
+        }
+
+        user.RefreshToken = null;
+        user.RefreshTokenExpiresAtUtc = null;
+        await _userManager.UpdateAsync(user);
+
+        _logger.LogInformation("Password reset successfully for: {Email}", user.Email);
+
+        return new BasicResponse
+        {
+            Succeeded = true,
+            Message = SuccessMessages.PasswordResetSuccessful
+        };
     }
 
     public async Task<LogoutResponse> LogoutAsync(string userEmail)
     {
-        try
+        var user = await _userManager.FindByEmailAsync(userEmail);
+        if (user == null)
         {
-            var user = await _userManager.FindByEmailAsync(userEmail);
-            if (user == null)
-            {
-                _logger.LogWarning("Logout attempted for non-existent user: {Email}", userEmail);
+            _logger.LogWarning("Logout attempted for non-existent user: {Email}", userEmail);
 
-                return new LogoutResponse
-                {
-                    Succeeded = false,
-                    Message = ErrorMessages.UserNotFound
-                };
-            }
-
-            // Invalidate the refresh token
-            user.RefreshToken = null;
-            user.RefreshTokenExpiresAtUtc = null;
-            await _userManager.UpdateAsync(user);
-            
-            _logger.LogInformation("User logged out: {Email}", userEmail);
-
-            return new LogoutResponse
-            {
-                Succeeded = true,
-                Message = SuccessMessages.LogoutSuccessful
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error during logout for {Email}", userEmail);
             return new LogoutResponse
             {
                 Succeeded = false,
-                Message = ErrorMessages.InternalServerError
+                Message = ErrorMessages.UserNotFound
             };
         }
+
+        // Invalidate the refresh token
+        user.RefreshToken = null;
+        user.RefreshTokenExpiresAtUtc = null;
+        await _userManager.UpdateAsync(user);
+
+        _logger.LogInformation("User logged out: {Email}", userEmail);
+
+        return new LogoutResponse
+        {
+            Succeeded = true,
+            Message = SuccessMessages.LogoutSuccessful
+        };
     }
 
     public async Task<UserProfileDto> GetCurrentUserAsync(string userEmail)
     {
-        try
+        var user = await _userManager.FindByEmailAsync(userEmail);
+        if (user == null)
         {
-            var user = await _userManager.FindByEmailAsync(userEmail);
-            if (user == null)
-            {
-                _logger.LogWarning("User profile requested for non-existent user: {Email}", userEmail);
+            _logger.LogWarning("User profile requested for non-existent user: {Email}", userEmail);
 
-                return null;
-            }
-
-            return new UserProfileDto
-            {
-                Email = user.Email ?? string.Empty,
-                FirstName = user.FirstName,
-                LastName = user.LastName,
-                CreatedAtUtc = user.CreatedAtUtc,
-                UpdatedAtUtc = user.UpdatedAtUtc
-            };
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving user profile for {Email}", userEmail);
             return null;
         }
+
+        return new UserProfileDto
+        {
+            Email = user.Email ?? string.Empty,
+            FirstName = user.FirstName,
+            LastName = user.LastName,
+            CreatedAtUtc = user.CreatedAtUtc,
+            UpdatedAtUtc = user.UpdatedAtUtc
+        };
     }
 
     private string GetIdentityRoleName(Role role)

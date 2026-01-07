@@ -24,7 +24,7 @@ public class BookController : ControllerBase
 
     [HttpGet]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(PagedResult<BookReadDto>),StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<BookReadDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetBooks([FromQuery] BookQueryParameters parameters)
     {
         var books = await _booksService.GetPagedAsync(parameters);
@@ -33,18 +33,18 @@ public class BookController : ControllerBase
 
     [HttpGet("{id:int}")]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(BookReadDto),StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BookReadDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<BookReadDto>> GetBookById(int id)
     {
         if (id <= 0)
-            return BadRequest(new BasicResponse 
-            { 
-                Succeeded = false, 
-                Message = ErrorMessages.InvalidId 
+            return BadRequest(new BasicResponse
+            {
+                Succeeded = false,
+                Message = ErrorMessages.InvalidId
             });
-        
+
         var book = await _booksService.GetByIdAsync(id);
 
         if (book == null)
@@ -58,11 +58,11 @@ public class BookController : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = IdentityRoleConstants.Admin)]
-    [ProducesResponseType(typeof(BookReadDto),StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(BookReadDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<BookReadDto>> CreateBook([FromBody]BookCreateDto bookDto)
+    public async Task<ActionResult<BookReadDto>> CreateBook([FromBody] BookCreateDto bookDto)
     {
         if (!ModelState.IsValid)
         {
@@ -76,6 +76,7 @@ public class BookController : ControllerBase
                 Message = errorMessage
             });
         }
+
         var createdBook = await _booksService.CreateAsync(bookDto);
         return CreatedAtAction(nameof(GetBookById), new { id = createdBook.Id }, createdBook);
     }
@@ -90,12 +91,12 @@ public class BookController : ControllerBase
     public async Task<IActionResult> UpdateBook(int id, [FromBody] BookUpdateDto bookDto)
     {
         if (id <= 0)
-            return BadRequest(new BasicResponse 
-            { 
-                Succeeded = false, 
-                Message = ErrorMessages.InvalidId 
+            return BadRequest(new BasicResponse
+            {
+                Succeeded = false,
+                Message = ErrorMessages.InvalidId
             });
-        
+
         if (!ModelState.IsValid)
         {
             var errorMessage = string.Join("; ", ModelState.Values
@@ -119,6 +120,7 @@ public class BookController : ControllerBase
                 Message = ErrorMessages.BookNotFound
             });
         }
+
         return NoContent();
     }
 
@@ -132,10 +134,10 @@ public class BookController : ControllerBase
     public async Task<IActionResult> DeleteBook(int id)
     {
         if (id <= 0)
-            return BadRequest(new BasicResponse 
-            { 
-                Succeeded = false, 
-                Message = ErrorMessages.InvalidId 
+            return BadRequest(new BasicResponse
+            {
+                Succeeded = false,
+                Message = ErrorMessages.InvalidId
             });
         var deleted = await _booksService.DeleteAsync(id);
 

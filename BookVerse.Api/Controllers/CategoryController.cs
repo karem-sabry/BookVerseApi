@@ -24,7 +24,7 @@ public class CategoryController : ControllerBase
 
     [HttpGet]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(PagedResult<CategoryListDto>),StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<CategoryListDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetCategories([FromQuery] QueryParameters parameters)
     {
         var categories = await _categoryService.GetPagedAsync(parameters);
@@ -33,23 +33,23 @@ public class CategoryController : ControllerBase
 
     [HttpGet("{id:int}")]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(CategoryReadDto),StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(CategoryReadDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<CategoryReadDto>> GetCategoryById(int id)
     {
         if (id <= 0)
-            return BadRequest(new BasicResponse 
-            { 
-                Succeeded = false, 
-                Message = ErrorMessages.InvalidId 
+            return BadRequest(new BasicResponse
+            {
+                Succeeded = false,
+                Message = ErrorMessages.InvalidId
             });
         var category = await _categoryService.GetByIdAsync(id);
         if (category == null)
-            return NotFound(new BasicResponse 
-            { 
-                Succeeded = false, 
-                Message = ErrorMessages.CategoryNotFound 
+            return NotFound(new BasicResponse
+            {
+                Succeeded = false,
+                Message = ErrorMessages.CategoryNotFound
             });
         else
             return Ok(category);
@@ -57,7 +57,7 @@ public class CategoryController : ControllerBase
 
     [HttpPost]
     [Authorize(Roles = IdentityRoleConstants.Admin)]
-    [ProducesResponseType(typeof(CategoryReadDto),StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(CategoryReadDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<ActionResult<CategoryReadDto>> CreateCategory(CategoryCreateDto categoryDto)
@@ -74,6 +74,7 @@ public class CategoryController : ControllerBase
                 Message = errorMessage
             });
         }
+
         var createdCategory = await _categoryService.CreateAsync(categoryDto);
         return CreatedAtAction(nameof(GetCategoryById), new { id = createdCategory.Id }, createdCategory);
     }
@@ -88,10 +89,10 @@ public class CategoryController : ControllerBase
     public async Task<IActionResult> UpdateCategory(int id, CategoryUpdateDto categoryDto)
     {
         if (id <= 0)
-            return BadRequest(new BasicResponse 
-            { 
-                Succeeded = false, 
-                Message = ErrorMessages.InvalidId 
+            return BadRequest(new BasicResponse
+            {
+                Succeeded = false,
+                Message = ErrorMessages.InvalidId
             });
         if (!ModelState.IsValid)
         {
@@ -105,6 +106,7 @@ public class CategoryController : ControllerBase
                 Message = errorMessage
             });
         }
+
         var updated = await _categoryService.UpdateAsync(id, categoryDto);
         if (!updated)
         {
@@ -114,6 +116,7 @@ public class CategoryController : ControllerBase
                 Message = ErrorMessages.CategoryNotFound
             });
         }
+
         return NoContent();
     }
 
@@ -127,18 +130,18 @@ public class CategoryController : ControllerBase
     public async Task<IActionResult> DeleteCategory(int id)
     {
         if (id <= 0)
-            return BadRequest(new BasicResponse 
-            { 
-                Succeeded = false, 
-                Message = ErrorMessages.InvalidId 
+            return BadRequest(new BasicResponse
+            {
+                Succeeded = false,
+                Message = ErrorMessages.InvalidId
             });
         var deleted = await _categoryService.DeleteAsync(id);
 
         if (!deleted)
-            return NotFound(new BasicResponse 
-            { 
-                Succeeded = false, 
-                Message = ErrorMessages.CategoryNotFound 
+            return NotFound(new BasicResponse
+            {
+                Succeeded = false,
+                Message = ErrorMessages.CategoryNotFound
             });
 
         return NoContent();

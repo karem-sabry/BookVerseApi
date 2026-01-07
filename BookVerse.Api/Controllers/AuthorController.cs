@@ -16,6 +16,7 @@ namespace BookVerse.Api.Controllers;
 public class AuthorController : ControllerBase
 {
     private readonly IAuthorsService _service;
+
     public AuthorController(IAuthorsService service)
     {
         _service = service;
@@ -23,7 +24,7 @@ public class AuthorController : ControllerBase
 
     [HttpGet]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(PagedResult<AuthorListDto>),StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(PagedResult<AuthorListDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAuthors([FromQuery] QueryParameters parameters)
     {
         var authors = await _service.GetPagedAsync(parameters);
@@ -32,34 +33,34 @@ public class AuthorController : ControllerBase
 
     [HttpGet("{id:int}")]
     [AllowAnonymous]
-    [ProducesResponseType(typeof(AuthorReadDto),StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(AuthorReadDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<AuthorReadDto>> GetAuthor(int id)
     {
         if (id <= 0)
-            return BadRequest(new BasicResponse 
-            { 
-                Succeeded = false, 
-                Message = ErrorMessages.InvalidId 
+            return BadRequest(new BasicResponse
+            {
+                Succeeded = false,
+                Message = ErrorMessages.InvalidId
             });
         var author = await _service.GetByIdAsync(id);
-        if (author == null) 
-            return NotFound(new BasicResponse 
-            { 
-                Succeeded = false, 
-                Message = ErrorMessages.AuthorNotFound 
+        if (author == null)
+            return NotFound(new BasicResponse
+            {
+                Succeeded = false,
+                Message = ErrorMessages.AuthorNotFound
             });
         return Ok(author);
     }
 
     [HttpPost]
     [Authorize(Roles = IdentityRoleConstants.Admin)]
-    [ProducesResponseType(typeof(AuthorReadDto),StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(AuthorReadDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    public async Task<ActionResult<AuthorReadDto>> CreateAuthor([FromBody]AuthorCreateDto authorDto)
+    public async Task<ActionResult<AuthorReadDto>> CreateAuthor([FromBody] AuthorCreateDto authorDto)
     {
         if (!ModelState.IsValid)
         {
@@ -73,7 +74,8 @@ public class AuthorController : ControllerBase
                 Message = errorMessage
             });
         }
-        var createdAuthor =await _service.CreateAsync(authorDto);
+
+        var createdAuthor = await _service.CreateAsync(authorDto);
 
         return CreatedAtAction(nameof(GetAuthor), new { id = createdAuthor.Id }, createdAuthor);
     }
@@ -88,10 +90,10 @@ public class AuthorController : ControllerBase
     public async Task<IActionResult> UpdateAuthor(int id, [FromBody] AuthorUpdateDto authorDto)
     {
         if (id <= 0)
-            return BadRequest(new BasicResponse 
-            { 
-                Succeeded = false, 
-                Message = ErrorMessages.InvalidId 
+            return BadRequest(new BasicResponse
+            {
+                Succeeded = false,
+                Message = ErrorMessages.InvalidId
             });
         if (!ModelState.IsValid)
         {
@@ -105,6 +107,7 @@ public class AuthorController : ControllerBase
                 Message = errorMessage
             });
         }
+
         var updated = await _service.UpdateAsync(id, authorDto);
 
         if (!updated)
@@ -129,21 +132,22 @@ public class AuthorController : ControllerBase
     public async Task<IActionResult> DeleteAuthor(int id)
     {
         if (id <= 0)
-            return BadRequest(new BasicResponse 
-            { 
-                Succeeded = false, 
-                Message = ErrorMessages.InvalidId 
+            return BadRequest(new BasicResponse
+            {
+                Succeeded = false,
+                Message = ErrorMessages.InvalidId
             });
 
         var deleted = await _service.DeleteAsync(id);
         if (!deleted)
         {
-            return NotFound(new BasicResponse 
-            { 
-                Succeeded = false, 
-                Message = ErrorMessages.AuthorNotFound 
+            return NotFound(new BasicResponse
+            {
+                Succeeded = false,
+                Message = ErrorMessages.AuthorNotFound
             });
         }
+
         return NoContent();
     }
 }

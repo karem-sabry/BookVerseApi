@@ -57,27 +57,9 @@ public class OrderController : ControllerBase
             });
         }
 
-        try
-        {
-            var order = await _orderService.CreateOrderFromCartAsync(userId, orderCreateDto);
-            return CreatedAtAction(nameof(GetOrderById), new { id = order.Id }, order);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return BadRequest(new BasicResponse
-            {
-                Succeeded = false,
-                Message = ex.Message
-            });
-        }
-        catch (KeyNotFoundException ex)
-        {
-            return NotFound(new BasicResponse
-            {
-                Succeeded = false,
-                Message = ex.Message
-            });
-        }
+
+        var order = await _orderService.CreateOrderFromCartAsync(userId, orderCreateDto);
+        return CreatedAtAction(nameof(GetOrderById), new { id = order.Id }, order);
     }
 
     /// <summary>

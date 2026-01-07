@@ -15,7 +15,8 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly IDateTimeProvider _dateTimeProvider;
 
-    public AppDbContext(DbContextOptions<AppDbContext> options, IHttpContextAccessor httpContextAccessor,IDateTimeProvider dateTimeProvider) :
+    public AppDbContext(DbContextOptions<AppDbContext> options, IHttpContextAccessor httpContextAccessor,
+        IDateTimeProvider dateTimeProvider) :
         base(options)
     {
         _httpContextAccessor = httpContextAccessor;
@@ -27,12 +28,13 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
     public DbSet<Category> Categories { get; set; }
     public DbSet<BookAuthor> BookAuthors { get; set; }
     public DbSet<BookCategory> BookCategories { get; set; }
-    
+
     public DbSet<Cart> Carts { get; set; }
     public DbSet<CartItem> CartItems { get; set; }
-    
+
     public DbSet<Order> Orders { get; set; }
     public DbSet<OrderItem> OrderItems { get; set; }
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -71,15 +73,15 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             entity.HasOne(oi => oi.Order)
                 .WithMany(o => o.OrderItems)
                 .HasForeignKey(oi => oi.OrderId)
-                .OnDelete(DeleteBehavior.Cascade); 
+                .OnDelete(DeleteBehavior.Cascade);
 
             entity.HasOne(oi => oi.Book)
                 .WithMany()
                 .HasForeignKey(oi => oi.BookId)
-                .OnDelete(DeleteBehavior.Restrict); 
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
-    
+
     private static void ConfigureCartRelationships(ModelBuilder modelBuilder)
     {
         // One User has One Cart
@@ -101,7 +103,6 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             .WithMany()
             .HasForeignKey(ci => ci.BookId)
             .OnDelete(DeleteBehavior.Restrict);
-
     }
 
     private static void ConfigureBookCategoryRelationship(ModelBuilder modelBuilder)
@@ -154,7 +155,7 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
                 .HasMaxLength(500);
         });
     }
-    
+
     private static void SeedData(ModelBuilder modelBuilder)
     {
         // Seed Roles
@@ -182,15 +183,16 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         modelBuilder.Entity<BookAuthor>().HasData(BookAuthorSeed.GetBookAuthors());
         modelBuilder.Entity<BookCategory>().HasData(BookCategorySeed.GetBookCategories());
     }
-    
+
     private void ApplyAuditInformation()
     {
-        var currentUserEmail = _httpContextAccessor?.HttpContext?.User?.Identity?.Name ?? ApplicationConstants.SystemUser;
+        var currentUserEmail =
+            _httpContextAccessor?.HttpContext?.User?.Identity?.Name ?? ApplicationConstants.SystemUser;
 
         var currentTime = _dateTimeProvider.UtcNow;
         var entries = ChangeTracker.Entries()
             .Where(e => e.State == EntityState.Added || e.State == EntityState.Modified);
-        
+
         foreach (var entry in entries)
         {
             if (entry.Entity is IAuditable auditableEntity)
@@ -201,7 +203,7 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
                     auditableEntity.UpdatedAtUtc = currentTime;
                     auditableEntity.CreatedBy = currentUserEmail;
                     auditableEntity.UpdatedBy = currentUserEmail;
-                } 
+                }
                 else if (entry.State == EntityState.Modified)
                 {
                     auditableEntity.UpdatedAtUtc = currentTime;
@@ -210,16 +212,15 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
                     // Prevent anyone from changing the createdBy or createdAt once set.
                     entry.Property(nameof(IAuditable.CreatedAtUtc)).IsModified = false;
                     entry.Property(nameof(IAuditable.CreatedBy)).IsModified = false;
-                    
                 }
             }
-            
+
             // Handle entities implementing ITimestampedEntity (join tables)
-            else if (entry.Entity is ITimestampedEntity timestampedEntity && entry.State == EntityState.Added )
+            else if (entry.Entity is ITimestampedEntity timestampedEntity && entry.State == EntityState.Added)
             {
                 timestampedEntity.CreatedAtUtc = currentTime;
             }
-            
+
             // Handle User entity separately (doesn't implement IAuditable)
             else if (entry.Entity is User user)
             {
@@ -227,7 +228,7 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
                 {
                     user.CreatedAtUtc = currentTime;
                     user.UpdatedAtUtc = currentTime;
-                } 
+                }
                 else if (entry.State == EntityState.Modified)
                 {
                     user.UpdatedAtUtc = currentTime;

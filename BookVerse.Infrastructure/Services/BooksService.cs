@@ -17,7 +17,8 @@ public class BooksService : IBooksService
     private readonly ILogger<BooksService> _logger;
     private readonly IDateTimeProvider _dateTimeProvider;
 
-    public BooksService(IUnitOfWork unitOfWork, IMapper mapper, AppDbContext context,ILogger<BooksService> logger,IDateTimeProvider dateTimeProvider)
+    public BooksService(IUnitOfWork unitOfWork, IMapper mapper, AppDbContext context, ILogger<BooksService> logger,
+        IDateTimeProvider dateTimeProvider)
     {
         _unitOfWork = unitOfWork;
         _mapper = mapper;
@@ -28,205 +29,155 @@ public class BooksService : IBooksService
 
     public async Task<PagedResult<BookReadDto>> GetPagedAsync(BookQueryParameters parameters)
     {
-        try
-        {
-            var pagedBooks = await _unitOfWork.Books.GetPagedWithDetailsAsync(parameters);
-            var bookDtos = _mapper.Map<IEnumerable<BookReadDto>>(pagedBooks.Items);
+        var pagedBooks = await _unitOfWork.Books.GetPagedWithDetailsAsync(parameters);
+        var bookDtos = _mapper.Map<IEnumerable<BookReadDto>>(pagedBooks.Items);
 
-            return new PagedResult<BookReadDto>(
-                bookDtos,
-                pagedBooks.TotalCount,
-                pagedBooks.CurrentPage,
-                pagedBooks.PageSize
-            );
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving paged books");
-            throw;
-        }
+        return new PagedResult<BookReadDto>(
+            bookDtos,
+            pagedBooks.TotalCount,
+            pagedBooks.CurrentPage,
+            pagedBooks.PageSize
+        );
     }
 
     public async Task<IEnumerable<BookReadDto>> GetAllAsync()
     {
-        try
-        {
-            var books = await _unitOfWork.Books.GetAllAsync();
-            return _mapper.Map<IEnumerable<BookReadDto>>(books);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error retrieving all books");
-            throw;
-        }
+        var books = await _unitOfWork.Books.GetAllAsync();
+        return _mapper.Map<IEnumerable<BookReadDto>>(books);
     }
 
     public async Task<BookReadDto?> GetByIdAsync(int id)
     {
-        try
-        {
-            var book = await _unitOfWork.Books.GetByIdWithDetailsAsync(id);
-            
-            if (book == null)
-            {
-                _logger.LogWarning("Book not found with ID: {BookId}", id);
-                return null;
-            }
+        var book = await _unitOfWork.Books.GetByIdWithDetailsAsync(id);
 
-            return _mapper.Map<BookReadDto>(book);
-        }
-        catch (Exception ex)
+        if (book == null)
         {
-            _logger.LogError(ex, "Error retrieving book: {BookId}", id);
-            throw;
+            _logger.LogWarning("Book not found with ID: {BookId}", id);
+            return null;
         }
+
+        return _mapper.Map<BookReadDto>(book);
     }
 
     public async Task<BookReadDto> CreateAsync(BookCreateDto bookDto)
     {
-        try
+        await _unitOfWork.BeginTransactionAsync();
+
+        var book = _mapper.Map<Book>(bookDto);
+        var existingBook = await _unitOfWork.Books.GetExistingBook(book);
+
+        if (existingBook != null)
         {
-            await _unitOfWork.BeginTransactionAsync();
-
-            var book = _mapper.Map<Book>(bookDto);
-            var existingBook = await _unitOfWork.Books.GetExistingBook(book);
-
-            if (existingBook != null)
-            {
-                _logger.LogInformation("Book already exists: {BookTitle}", book.Title);
-                await _unitOfWork.CommitTransactionAsync();
-                return _mapper.Map<BookReadDto>(existingBook);
-            }
-
-            await _unitOfWork.Books.AddAsync(book);
-            await _unitOfWork.SaveChangesAsync();
-
-            // add relationships
-            foreach (var authorId in bookDto.AuthorIds)
-            {
-                var bookAuthor = new BookAuthor
-                {
-                    BookId = book.Id,
-                    AuthorId = authorId,
-                    CreatedAtUtc = _dateTimeProvider.UtcNow
-                };
-                await _context.BookAuthors.AddAsync(bookAuthor);
-            }
-
-            foreach (var categoryId in bookDto.CategoryIds)
-            {
-                var bookCategory = new BookCategory
-                {
-                    BookId = book.Id,
-                    CategoryId = categoryId,
-                    CreatedAtUtc = _dateTimeProvider.UtcNow
-                };
-                await _context.BookCategories.AddAsync(bookCategory);
-            }
-
-            await _unitOfWork.SaveChangesAsync();
+            _logger.LogInformation("Book already exists: {BookTitle}", book.Title);
             await _unitOfWork.CommitTransactionAsync();
+            return _mapper.Map<BookReadDto>(existingBook);
+        }
 
-            var createdBook = await _unitOfWork.Books.GetByIdWithDetailsAsync(book.Id);
-            return _mapper.Map<BookReadDto>(createdBook!);
-        }
-        catch (Exception ex)
+        await _unitOfWork.Books.AddAsync(book);
+        await _unitOfWork.SaveChangesAsync();
+
+        // add relationships
+        foreach (var authorId in bookDto.AuthorIds)
         {
-            _logger.LogError(ex, "Error creating book: {BookTitle}", bookDto.Title);
-            await _unitOfWork.RollbackTransactionAsync();
-            throw;
+            var bookAuthor = new BookAuthor
+            {
+                BookId = book.Id,
+                AuthorId = authorId,
+                CreatedAtUtc = _dateTimeProvider.UtcNow
+            };
+            await _context.BookAuthors.AddAsync(bookAuthor);
         }
+
+        foreach (var categoryId in bookDto.CategoryIds)
+        {
+            var bookCategory = new BookCategory
+            {
+                BookId = book.Id,
+                CategoryId = categoryId,
+                CreatedAtUtc = _dateTimeProvider.UtcNow
+            };
+            await _context.BookCategories.AddAsync(bookCategory);
+        }
+
+        await _unitOfWork.SaveChangesAsync();
+        await _unitOfWork.CommitTransactionAsync();
+
+        var createdBook = await _unitOfWork.Books.GetByIdWithDetailsAsync(book.Id);
+        return _mapper.Map<BookReadDto>(createdBook!);
     }
 
     public async Task<bool> UpdateAsync(int id, BookUpdateDto bookDto)
     {
-        try
+        await _unitOfWork.BeginTransactionAsync();
+
+        var book = await _unitOfWork.Books.GetByIdWithDetailsAsync(id);
+        if (book == null)
         {
-            await _unitOfWork.BeginTransactionAsync();
-
-            var book = await _unitOfWork.Books.GetByIdWithDetailsAsync(id);
-            if (book == null)
-            { 
-                _logger.LogWarning("Attempted to update non-existent book with ID: {BookId}", id);
-                await _unitOfWork.RollbackTransactionAsync();
-                return false;
-            }
-
-            //Update basic properties
-            _mapper.Map(bookDto, book);
-            _unitOfWork.Books.Update(book);
-            
-            //Remove existing author relationships
-            var existingAuthorRelations = await _context.BookAuthors
-                .Where(ba => ba.BookId == id)
-                .ToListAsync();
-            _context.BookAuthors.RemoveRange(existingAuthorRelations);
-
-            //Add new author relationships
-            foreach (var authorId in bookDto.AuthorIds)
-            {
-                var bookAuthor = new BookAuthor
-                {
-                    BookId = id,
-                    AuthorId = authorId,
-                    CreatedAtUtc = _dateTimeProvider.UtcNow
-                };
-                await _context.BookAuthors.AddAsync(bookAuthor);
-            }
-
-            //Remove existing category relationships
-            var existingCategoryRelations = await _context.BookCategories.Where(bc => book.Id == id)
-                .ToListAsync();
-
-            _context.BookCategories.RemoveRange(existingCategoryRelations);
-
-            //Add new category relationships
-            foreach (var categoryId in bookDto.CategoryIds)
-            {
-                var bookCategory = new BookCategory
-                {
-                    BookId = id,
-                    CategoryId = categoryId,
-                    CreatedAtUtc = _dateTimeProvider.UtcNow
-                };
-                await _context.BookCategories.AddAsync(bookCategory);
-            }
-
-            await _unitOfWork.SaveChangesAsync();
-            await _unitOfWork.CommitTransactionAsync();
-            
-            _logger.LogInformation("Updated book: {BookId}", id);
-            return true;
-        }
-        catch(Exception ex)
-        {
-            _logger.LogError(ex, "Error updating book: {BookId}", id);
+            _logger.LogWarning("Attempted to update non-existent book with ID: {BookId}", id);
             await _unitOfWork.RollbackTransactionAsync();
-            throw;
+            return false;
         }
+
+        //Update basic properties
+        _mapper.Map(bookDto, book);
+        _unitOfWork.Books.Update(book);
+
+        //Remove existing author relationships
+        var existingAuthorRelations = await _context.BookAuthors
+            .Where(ba => ba.BookId == id)
+            .ToListAsync();
+        _context.BookAuthors.RemoveRange(existingAuthorRelations);
+
+        //Add new author relationships
+        foreach (var authorId in bookDto.AuthorIds)
+        {
+            var bookAuthor = new BookAuthor
+            {
+                BookId = id,
+                AuthorId = authorId,
+                CreatedAtUtc = _dateTimeProvider.UtcNow
+            };
+            await _context.BookAuthors.AddAsync(bookAuthor);
+        }
+
+        //Remove existing category relationships
+        var existingCategoryRelations = await _context.BookCategories.Where(bc => book.Id == id)
+            .ToListAsync();
+
+        _context.BookCategories.RemoveRange(existingCategoryRelations);
+
+        //Add new category relationships
+        foreach (var categoryId in bookDto.CategoryIds)
+        {
+            var bookCategory = new BookCategory
+            {
+                BookId = id,
+                CategoryId = categoryId,
+                CreatedAtUtc = _dateTimeProvider.UtcNow
+            };
+            await _context.BookCategories.AddAsync(bookCategory);
+        }
+
+        await _unitOfWork.SaveChangesAsync();
+        await _unitOfWork.CommitTransactionAsync();
+
+        _logger.LogInformation("Updated book: {BookId}", id);
+        return true;
     }
 
     public async Task<bool> DeleteAsync(int id)
     {
-        try
-        {
-            var book = await _unitOfWork.Books.GetByIdWithDetailsAsync(id);
-            
-            if (book == null)
-            {
-                _logger.LogWarning("Attempted to delete non-existent book with ID: {BookId}", id);
-                return false;
-            }
+        var book = await _unitOfWork.Books.GetByIdWithDetailsAsync(id);
 
-            _unitOfWork.Books.Delete(book);
-            await _unitOfWork.SaveChangesAsync();
-            _logger.LogInformation("Deleted book: {BookId}", id);
-            return true;
-        }
-        catch (Exception ex)
+        if (book == null)
         {
-            _logger.LogError(ex, "Error deleting book: {BookId}", id);
-            throw;
+            _logger.LogWarning("Attempted to delete non-existent book with ID: {BookId}", id);
+            return false;
         }
+
+        _unitOfWork.Books.Delete(book);
+        await _unitOfWork.SaveChangesAsync();
+        _logger.LogInformation("Deleted book: {BookId}", id);
+        return true;
     }
 }

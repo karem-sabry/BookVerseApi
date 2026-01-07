@@ -19,7 +19,7 @@ public class OrderRepository : GenericRepository<Order>, IOrderRepository
     {
         return await _dbSet
             .Include(o => o.OrderItems)
-                .ThenInclude(oi => oi.Book)
+            .ThenInclude(oi => oi.Book)
             .Include(o => o.User)
             .FirstOrDefaultAsync(o => o.Id == orderId);
     }
@@ -33,7 +33,7 @@ public class OrderRepository : GenericRepository<Order>, IOrderRepository
         if (!string.IsNullOrWhiteSpace(parameters.SearchTerm))
         {
             var lowerSearchTerm = parameters.SearchTerm.ToLower();
-            query = query.Where(o => 
+            query = query.Where(o =>
                 o.OrderNumber.ToLower().Contains(lowerSearchTerm) ||
                 (o.ShippingAddress != null && o.ShippingAddress.ToLower().Contains(lowerSearchTerm)));
         }
@@ -97,7 +97,7 @@ public class OrderRepository : GenericRepository<Order>, IOrderRepository
     {
         return await _dbSet
             .Include(o => o.OrderItems)
-                .ThenInclude(oi => oi.Book)
+            .ThenInclude(oi => oi.Book)
             .FirstOrDefaultAsync(o => o.Id == orderId && o.UserId == userId);
     }
 

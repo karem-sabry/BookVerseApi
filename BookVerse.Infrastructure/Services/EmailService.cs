@@ -20,28 +20,21 @@ public class EmailService : IEmailService
 
     public async Task SendEmailAsync(string toEmail, string subject, string body)
     {
-        try
+        using var message = new MailMessage
         {
-            using var message = new MailMessage
-            {
-                From = new MailAddress(_emailOptions.FromEmail, _emailOptions.FromName),
-                Subject = subject,
-                Body = body,
-                IsBodyHtml = false
-            };
-            message.To.Add(toEmail);
+            From = new MailAddress(_emailOptions.FromEmail, _emailOptions.FromName),
+            Subject = subject,
+            Body = body,
+            IsBodyHtml = false
+        };
+        message.To.Add(toEmail);
 
-            using var smtp = new SmtpClient(_emailOptions.SmtpHost, _emailOptions.SmtpPort)
-            {
-                Credentials = new NetworkCredential(_emailOptions.SmtpUsername, _emailOptions.SmtpPassword),
-                EnableSsl = true
-            };
-            await smtp.SendMailAsync(message);
-            _logger.LogInformation($"Email send successfully to {toEmail}.");
-        }
-        catch (Exception ex)
+        using var smtp = new SmtpClient(_emailOptions.SmtpHost, _emailOptions.SmtpPort)
         {
-            _logger.LogError(ex, $"Failed to send email to{toEmail}.");
-        }
+            Credentials = new NetworkCredential(_emailOptions.SmtpUsername, _emailOptions.SmtpPassword),
+            EnableSsl = true
+        };
+        await smtp.SendMailAsync(message);
+        _logger.LogInformation($"Email send successfully to {toEmail}.");
     }
 }

@@ -8,5 +8,5 @@ public static class ApplicationConstants
     public const int MinPasswordLength = 8;
     public const int MaxPasswordLength = 50;
     public const int RefreshTokenExpirationDays = 7;
-    public const int PasswordResetTokenExpirationHours =  2;
+    public const int PasswordResetTokenExpirationHours = 2;
 }

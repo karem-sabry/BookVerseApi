@@ -13,5 +13,5 @@ public class OrderListDto
     public int ItemCount { get; set; }
     public PaymentStatus PaymentStatus { get; set; }
     public string PaymentStatusDisplay => PaymentStatus.ToString();
-    public DateTime CreatedAtUtc { get; set; } 
+    public DateTime CreatedAtUtc { get; set; }
 }

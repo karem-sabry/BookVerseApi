@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace BookVerse.Infrastructure.Repositories;
 
-public class CartRepository : GenericRepository<Cart>,ICartRepository
+public class CartRepository : GenericRepository<Cart>, ICartRepository
 {
     private readonly AppDbContext _context;
 
@@ -16,7 +16,8 @@ public class CartRepository : GenericRepository<Cart>,ICartRepository
 
     public async Task<Cart?> GetUserCartAsync(Guid userId)
     {
-          return await _dbSet.Include(c => c.CartItems).ThenInclude(ci => ci.Book).FirstOrDefaultAsync(c => c.UserId == userId);
+        return await _dbSet.Include(c => c.CartItems).ThenInclude(ci => ci.Book)
+            .FirstOrDefaultAsync(c => c.UserId == userId);
     }
 
     public async Task<Cart?> GetCartWithItemsAsync(int cartId)
@@ -32,7 +33,7 @@ public class CartRepository : GenericRepository<Cart>,ICartRepository
 
     public async Task AddCartItemAsync(CartItem cartItem)
     {
-         await _context.CartItems.AddAsync(cartItem);
+        await _context.CartItems.AddAsync(cartItem);
     }
 
     public void UpdateCartItem(CartItem cartItem)

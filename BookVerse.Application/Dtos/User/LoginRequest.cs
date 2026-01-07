@@ -11,6 +11,7 @@ public record LoginRequest
     public required string Email { get; init; }
 
     [Required(ErrorMessage = "Password is required")]
-    [StringLength(ApplicationConstants.MaxPasswordLength, MinimumLength = ApplicationConstants.MinPasswordLength, ErrorMessage = $"Password must be between 8 and 50 characters")]
+    [StringLength(ApplicationConstants.MaxPasswordLength, MinimumLength = ApplicationConstants.MinPasswordLength,
+        ErrorMessage = $"Password must be between 8 and 50 characters")]
     public required string Password { get; init; }
 }

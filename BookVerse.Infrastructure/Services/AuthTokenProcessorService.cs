@@ -16,7 +16,7 @@ public class AuthTokenProcessorService : IAuthTokenProcessor
     private readonly IDateTimeProvider _dateTimeProvider;
     private readonly JwtOptions _jwtOptions;
 
-    public AuthTokenProcessorService(IOptions<JwtOptions> jwtOptions,IDateTimeProvider dateTimeProvider)
+    public AuthTokenProcessorService(IOptions<JwtOptions> jwtOptions, IDateTimeProvider dateTimeProvider)
     {
         _dateTimeProvider = dateTimeProvider;
         _jwtOptions = jwtOptions.Value;

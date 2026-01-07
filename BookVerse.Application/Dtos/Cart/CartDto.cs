@@ -9,5 +9,4 @@ public class CartDto
     public int TotalItems => CartItems.Sum(i => i.Quantity);
     public DateTime CreatedAtUtc { get; set; }
     public DateTime? UpdatedAtUtc { get; set; }
-    
 }

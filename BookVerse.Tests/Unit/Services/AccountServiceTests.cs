@@ -9,6 +9,7 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Logging;
 using Moq;
+
 namespace BookVerse.Tests.Unit.Services;
 
 public class AccountServiceTests
@@ -221,7 +222,6 @@ public class AccountServiceTests
         registerResult.Errors.Should().Contain("Password is too weak!");
 
         _mockUserManager.Verify(x => x.AddToRoleAsync(It.IsAny<User>(), It.IsAny<string>()), Times.Never());
-
     }
 
     #endregion
@@ -248,11 +248,11 @@ public class AccountServiceTests
         var jwtToken = "fake-token-for-testing";
 
         var refreshToken = "Also-fake-token-for-testing";
-        
+
         var userRoles = new List<string> { IdentityRoleConstants.User };
 
         var expiresAt = _mockDateTimeProvider.Object.UtcNow.AddMinutes(60);
-        
+
         _mockUserManager.Setup(x => x.FindByEmailAsync(loginRequest.Email)).ReturnsAsync(existingUser);
 
         _mockUserManager.Setup(x => x.CheckPasswordAsync(existingUser, loginRequest.Password)).ReturnsAsync(true);
@@ -279,9 +279,8 @@ public class AccountServiceTests
 
         existingUser.RefreshToken.Should().Be(refreshToken);
         existingUser.RefreshTokenExpiresAtUtc.Should().NotBeNull();
-        
-        _mockUserManager.Verify(x=>x.UpdateAsync(existingUser),Times.Once);
 
+        _mockUserManager.Verify(x => x.UpdateAsync(existingUser), Times.Once);
     }
 
     [Fact]
@@ -298,7 +297,7 @@ public class AccountServiceTests
 
         // Act
         var result = await _sut.LoginAsync(loginRequest);
-        
+
         // Assert
         result.Succeeded.Should().BeFalse();
         result.Message.Should().Be(ErrorMessages.InvalidCredentials);
@@ -325,18 +324,18 @@ public class AccountServiceTests
         _mockUserManager.Setup(x => x.FindByEmailAsync(loginRequest.Email)).ReturnsAsync(existingUser);
 
         _mockUserManager.Setup(x => x.CheckPasswordAsync(existingUser, loginRequest.Password)).ReturnsAsync(false);
-        
+
         // Act
         var loginResult = await _sut.LoginAsync(loginRequest);
-        
+
 
         // Assert
         loginResult.Succeeded.Should().BeFalse();
         loginResult.Message.Should().Be(ErrorMessages.InvalidCredentials);
-        
-        _mockTokenProcessor.Verify(x=>x.GenerateJwtToken(It.IsAny<User>(),It.IsAny<IList<string>>()),Times.Never);
 
+        _mockTokenProcessor.Verify(x => x.GenerateJwtToken(It.IsAny<User>(), It.IsAny<IList<string>>()), Times.Never);
     }
+
     #endregion
 
     #region RefreshTokenAsync Tests
@@ -346,12 +345,12 @@ public class AccountServiceTests
     {
         // Arrange
         var token = "valid-refresh-token";
-            
+
         var request = new RefreshTokenRequest
         {
             RefreshToken = token
         };
-    
+
         var userRoles = new List<string> { IdentityRoleConstants.User };
         var existingUser = new User
         {
@@ -362,26 +361,26 @@ public class AccountServiceTests
             RefreshToken = token,
             RefreshTokenExpiresAtUtc = _mockDateTimeProvider.Object.UtcNow.AddDays(1)
         };
-        
+
         var newJwtToken = "new-generated-token";
         var expirationDateInUtc = _mockDateTimeProvider.Object.UtcNow.AddMinutes(15);
-    
+
         var newRefreshToken = "new-refresh-token";
-        
+
         _mockUserRepository.Setup(x => x.GetUserByRefreshTokenAsync(request.RefreshToken)).ReturnsAsync(existingUser);
-    
+
         _mockUserManager.Setup(x => x.GetRolesAsync(existingUser)).ReturnsAsync(userRoles);
-    
+
         _mockTokenProcessor.Setup(x => x.GenerateJwtToken(existingUser, userRoles))
             .Returns((newJwtToken, expirationDateInUtc));
-    
+
         _mockTokenProcessor.Setup(x => x.GenerateRefreshToken()).Returns(newRefreshToken);
-    
+
         _mockUserManager.Setup(x => x.UpdateAsync(existingUser)).ReturnsAsync(IdentityResult.Success);
-        
+
         // Act
         var result = await _sut.RefreshTokenAsync(request);
-    
+
         // Assert
         result.Succeeded.Should().BeTrue();
         result.Message.Should().Be(SuccessMessages.TokenRefreshed);
@@ -395,12 +394,12 @@ public class AccountServiceTests
     {
         // Arrange
         var token = "valid-refresh-token";
-            
+
         var request = new RefreshTokenRequest
         {
             RefreshToken = token
         };
-    
+
         var userRoles = new List<string> { IdentityRoleConstants.User };
         var existingUser = new User
         {
@@ -411,19 +410,19 @@ public class AccountServiceTests
             RefreshToken = token,
             RefreshTokenExpiresAtUtc = _mockDateTimeProvider.Object.UtcNow.AddDays(-1)
         };
-        
-        
+
+
         _mockUserRepository.Setup(x => x.GetUserByRefreshTokenAsync(request.RefreshToken)).ReturnsAsync(existingUser);
-    
+
         _mockUserManager.Setup(x => x.GetRolesAsync(existingUser)).ReturnsAsync(userRoles);
-        
+
         // Act
         var result = await _sut.RefreshTokenAsync(request);
-    
+
         // Assert
         result.Succeeded.Should().BeFalse();
         result.Message.Should().Be(ErrorMessages.RefreshTokenExpired);
     }
-    
+
     #endregion
 }
