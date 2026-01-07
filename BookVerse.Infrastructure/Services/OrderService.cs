@@ -38,6 +38,7 @@ public class OrderService : IOrderService
         if (cart == null || !cart.CartItems.Any())
         {
             _logger.LogWarning("Attempted to create order with empty cart for user: {UserId}", userId);
+            await _unitOfWork.RollbackTransactionAsync();
             throw new InvalidOperationException(ErrorMessages.EmptyCart);
         }
 
@@ -48,6 +49,7 @@ public class OrderService : IOrderService
             if (book == null)
             {
                 _logger.LogWarning("Book not found: {BookId}", cartItem.BookId);
+                await _unitOfWork.RollbackTransactionAsync();
                 throw new KeyNotFoundException($"Book with ID {cartItem.BookId} not found");
             }
 
@@ -56,6 +58,7 @@ public class OrderService : IOrderService
                 _logger.LogWarning(
                     "Insufficient stock for book: {BookId}. Requested: {Requested}, Available: {Available}",
                     cartItem.BookId, cartItem.Quantity, book.QuantityInStock);
+                await _unitOfWork.RollbackTransactionAsync();
                 throw new InvalidOperationException($"Insufficient stock for book: {book.Title}");
             }
         }

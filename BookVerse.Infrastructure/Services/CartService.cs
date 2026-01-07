@@ -60,6 +60,7 @@ public class CartService : ICartService
         if (book == null)
         {
             _logger.LogWarning("Book not found: {BookId}", cartItem.BookId);
+            await _unitOfWork.RollbackTransactionAsync();
             throw new KeyNotFoundException(ErrorMessages.BookNotFound);
         }
 
@@ -67,6 +68,7 @@ public class CartService : ICartService
         {
             _logger.LogWarning("Insufficient stock for book: {BookId}. Requested: {Requested}, Available: {Available}",
                 cartItem.BookId, cartItem.Quantity, book.QuantityInStock);
+            await _unitOfWork.RollbackTransactionAsync();
             throw new InvalidOperationException(ErrorMessages.InsufficientStock);
         }
 
