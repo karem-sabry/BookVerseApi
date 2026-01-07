@@ -6,12 +6,14 @@ using BookVerse.Core.Constants;
 using BookVerse.Core.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 
 namespace BookVerse.Api.Controllers;
 
 [ApiController]
 [Route("api/v{version:apiVersion}/[controller]")]
 [ApiVersion("1.0")]
+[EnableRateLimiting("api")]
 [Produces("application/json")]
 public class AuthorController : ControllerBase
 {
@@ -24,6 +26,7 @@ public class AuthorController : ControllerBase
 
     [HttpGet]
     [AllowAnonymous]
+    [ResponseCache(Duration = 300, Location = ResponseCacheLocation.Any)]
     [ProducesResponseType(typeof(PagedResult<AuthorListDto>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAuthors([FromQuery] QueryParameters parameters)
     {
@@ -33,6 +36,7 @@ public class AuthorController : ControllerBase
 
     [HttpGet("{id:int}")]
     [AllowAnonymous]
+    [ResponseCache(Duration = 300, VaryByQueryKeys = new[] { "id" })]
     [ProducesResponseType(typeof(AuthorReadDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

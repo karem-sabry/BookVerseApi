@@ -1,57 +1,60 @@
 ﻿using System.Net;
-using System.Text.Json;
-using BookVerse.Core.Models;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
 
 namespace BookVerse.Api.Middlewares;
 
 public class GlobalExceptionHandler : IExceptionHandler
 {
     private readonly ILogger<GlobalExceptionHandler> _logger;
+    private readonly IHostEnvironment _environment;
 
-    public GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger)
+    public GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger, IHostEnvironment environment)
     {
         _logger = logger;
+        _environment = environment;
     }
 
-    public async ValueTask<bool> TryHandleAsync(HttpContext httpContext, Exception exception,
+    public async ValueTask<bool> TryHandleAsync(
+        HttpContext httpContext,
+        Exception exception,
         CancellationToken cancellationToken)
     {
-        httpContext.Response.StatusCode = exception switch
+        var (statusCode, title) = exception switch
         {
-            KeyNotFoundException => (int)HttpStatusCode.NotFound,
-            UnauthorizedAccessException => (int)HttpStatusCode.Unauthorized,
-            InvalidOperationException => (int)HttpStatusCode.BadRequest,
-            _ => (int)HttpStatusCode.InternalServerError
+            KeyNotFoundException => (StatusCodes.Status404NotFound, "Resource not found"),
+            UnauthorizedAccessException => (StatusCodes.Status401Unauthorized, "Unauthorized access"),
+            InvalidOperationException => (StatusCodes.Status400BadRequest, "Invalid operation"),
+            ArgumentException => (StatusCodes.Status400BadRequest, "Invalid argument"),
+            _ => (StatusCodes.Status500InternalServerError, "Internal server error")
         };
-
-        httpContext.Response.ContentType = "application/json";
 
         _logger.LogError(exception,
-            $"An unhandled exception occurred. StatusCode:{httpContext.Response.StatusCode}, Message: {exception.Message}");
+            "Exception occurred: {Message} | Status: {StatusCode}",
+            exception.Message,
+            statusCode);
 
-        var errorDetails = new ErrorDetails
+        var problemDetails = new ProblemDetails
         {
-            StatusCode = httpContext.Response.StatusCode,
-            Message = GetUserFriendlyMessage(exception, httpContext.Response.StatusCode)
+            Status = statusCode,
+            Title = title,
+            Detail = exception.Message,
+            Instance = httpContext.Request.Path,
+            Type = $"https://httpstatuses.com/{statusCode}"
         };
 
-        await httpContext.Response.WriteAsync(
-            errorDetails.ToString(),
-            cancellationToken);
+        // Include stack trace only in development
+        if (_environment.IsDevelopment())
+        {
+            problemDetails.Extensions["stackTrace"] = exception.StackTrace;
+        }
 
-        // Return true to indicate the exception has been handled
+        problemDetails.Extensions["traceId"] = httpContext.TraceIdentifier;
+        problemDetails.Extensions["timestamp"] = DateTime.UtcNow;
+
+        httpContext.Response.StatusCode = statusCode;
+        await httpContext.Response.WriteAsJsonAsync(problemDetails, cancellationToken);
+
         return true;
-    }
-
-    private static string GetUserFriendlyMessage(Exception exception, int statusCode)
-    {
-        return statusCode switch
-        {
-            (int)HttpStatusCode.NotFound => exception.Message,
-            (int)HttpStatusCode.BadRequest => exception.Message,
-            (int)HttpStatusCode.Unauthorized => "Unauthorized access.",
-            _ => "An unexpected error occurred. Please try again later."
-        };
     }
 }

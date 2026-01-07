@@ -6,6 +6,7 @@ using BookVerse.Core.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity.Data;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using LoginRequest = BookVerse.Application.Dtos.User.LoginRequest;
 using RegisterRequest = BookVerse.Application.Dtos.User.RegisterRequest;
 using ResetPasswordRequest = Microsoft.AspNetCore.Identity.Data.ResetPasswordRequest;
@@ -26,6 +27,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("register")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth")]
     [ProducesResponseType(typeof(RegisterResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(RegisterResponse), StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Register([FromBody] RegisterRequest registerRequest)
@@ -47,6 +49,7 @@ public class AuthController : ControllerBase
 
     [HttpPost("login")]
     [AllowAnonymous]
+    [EnableRateLimiting("auth")]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(LoginResponse), StatusCodes.Status401Unauthorized)]

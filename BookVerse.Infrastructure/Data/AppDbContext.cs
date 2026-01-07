@@ -48,6 +48,7 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
         ConfigureBookAuthorRelationship(modelBuilder);
         ConfigureBookCategoryRelationship(modelBuilder);
         ConfigureCartRelationships(modelBuilder);
+        ConfigureOrderRelationships(modelBuilder);
         SeedData(modelBuilder);
     }
 
@@ -61,7 +62,8 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
             entity.HasIndex(o => o.UserId);
 
             entity.HasIndex(o => o.OrderDate);
-
+            entity.Property(o => o.TotalAmount)
+                .HasPrecision(18, 2);
             entity.HasOne(o => o.User)
                 .WithMany(u => u.Orders)
                 .HasForeignKey(o => o.UserId)
@@ -70,6 +72,8 @@ public class AppDbContext : IdentityDbContext<User, IdentityRole<Guid>, Guid>
 
         modelBuilder.Entity<OrderItem>(entity =>
         {
+            entity.Property(oi => oi.PriceAtOrder)
+                .HasPrecision(18, 2);
             entity.HasOne(oi => oi.Order)
                 .WithMany(o => o.OrderItems)
                 .HasForeignKey(oi => oi.OrderId)

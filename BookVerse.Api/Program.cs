@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Text;
+using System.Threading.RateLimiting;
 using Asp.Versioning;
 using BookVerse.Application.Interfaces;
 using BookVerse.Core.Constants;
@@ -9,8 +10,10 @@ using BookVerse.Infrastructure.Data;
 using BookVerse.Infrastructure.Repositories;
 using BookVerse.Infrastructure.Services;
 using BookVerse.Api.Middlewares;
+using BookVerse.Application.Dtos.User;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
@@ -50,7 +53,48 @@ builder.Services.AddControllers().AddJsonOptions(options =>
     options.JsonSerializerOptions.DefaultIgnoreCondition =
         System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull;
 }).AddNewtonsoftJson();
+builder.Services.AddRateLimiter(options =>
+{
+    // Global rate limit
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.User.Identity?.Name ?? context.Request.Headers.Host.ToString(),
+            factory: partition => new FixedWindowRateLimiterOptions
+            {
+                AutoReplenishment = true,
+                PermitLimit = 100,
+                QueueLimit = 0,
+                Window = TimeSpan.FromMinutes(1)
+            }));
 
+    // Strict rate limit for auth endpoints
+    options.AddFixedWindowLimiter("auth", options =>
+    {
+        options.PermitLimit = 5;
+        options.Window = TimeSpan.FromMinutes(1);
+        options.QueueLimit = 0;
+    });
+
+    // Moderate rate limit for public endpoints
+    options.AddFixedWindowLimiter("api", options =>
+    {
+        options.PermitLimit = 50;
+        options.Window = TimeSpan.FromMinutes(1);
+        options.QueueLimit = 0;
+    });
+
+    options.OnRejected = async (context, token) =>
+    {
+        context.HttpContext.Response.StatusCode = 429;
+        await context.HttpContext.Response.WriteAsJsonAsync(new BasicResponse
+        {
+            Succeeded = false,
+            Message = "Too many requests. Please try again later."
+        }, cancellationToken: token);
+    };
+});
+builder.Services.AddResponseCaching();
+builder.Services.AddMemoryCache();
 builder.Services.AddApiVersioning(options =>
 {
     options.DefaultApiVersion = new ApiVersion(1, 0);
@@ -347,6 +391,8 @@ app.Use(async (context, next) =>
 });
 
 app.UseHttpsRedirection();
+app.UseRateLimiter();
+app.UseResponseCaching();
 app.UseAuthentication();
 app.UseAuthorization();
 
